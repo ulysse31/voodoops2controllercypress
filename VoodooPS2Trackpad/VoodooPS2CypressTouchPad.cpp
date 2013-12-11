@@ -292,7 +292,7 @@ PS2InterruptResult ApplePS2CypressTouchPad::interruptOccurred(UInt8 data)
 	  packet[_packetByteCount++] = 0;
 	  packet[_packetByteCount++] = 0;
 	}
-      _ringBuffer.advanceHead(_packetByteCount);
+      _ringBuffer.advanceHead(kPacketLengthLarge);
       _packetByteCount = 0;
       return kPS2IR_packetReady;
     }
