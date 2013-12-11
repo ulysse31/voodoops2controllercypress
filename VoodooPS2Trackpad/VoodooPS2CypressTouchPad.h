@@ -18,6 +18,16 @@
  * under the License.
  * 
  * @APPLE_LICENSE_HEADER_END@
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ * THIS CODE IS UNDER DEVELOPMENT, IT IS PRE-ALPHA, INCOMPLETE AND BUGGY
+ *                      DO NOT USE IT ON PRODUCTION
+ * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+ *
+ * Some basic functions as been ported from linux, but the processing 
+ * could not be done the same way ...
+ * Thanks to Dudley Du from cypress for his short, but enought doc sheet
+ * Ulysse31 aka Nix
+ * ulysse31<at>gmail.com
  */
 
 #ifndef _APPLEPS2SYNAPTICSTOUCHPAD_H
