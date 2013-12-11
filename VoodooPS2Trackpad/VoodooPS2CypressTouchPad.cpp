@@ -286,7 +286,13 @@ PS2InterruptResult ApplePS2CypressTouchPad::interruptOccurred(UInt8 data)
   //DEBUG_LOG("CYPRESS: interruptOccured: rec 0x%02x byte number %d of %d (queued %d)\n", data, _packetByteCount - 1, this->packetSize(), _ringBuffer.count());
   if (this->packetSize() == _packetByteCount)
     {
-      _ringBuffer.advanceHead(this->packetSize());
+      if (this->packetSize() == kPacketLengthSmall)
+	{
+	  packet[_packetByteCount++] = 0;
+	  packet[_packetByteCount++] = 0;
+	  packet[_packetByteCount++] = 0;
+	}
+      _ringBuffer.advanceHead(_packetByteCount);
       _packetByteCount = 0;
       return kPS2IR_packetReady;
     }
@@ -300,7 +306,7 @@ void ApplePS2CypressTouchPad::packetReady()
     // empty the ring buffer, dispatching each packet...
   // here need to implement cypress_protocol_handler / cypress_process_packet
   // minimum size = 5
-  while (_ringBuffer.count() >= kPacketLengthSmall)
+  while (_ringBuffer.count() >= kPacketLengthLarge)
     {
       UInt8 *packet = _ringBuffer.tail();
       this->updatePacketSize(packet[0]);
@@ -319,7 +325,7 @@ void ApplePS2CypressTouchPad::packetReady()
       if (packet[0] == 0x00)
 	{
 	  // Empty packet, possible so no re-sync
-	  _ringBuffer.advanceTail(size);
+	  _ringBuffer.advanceTail(kPacketLengthLarge);
 	  _xpos = -1;
 	  _ypos = -1;
 	  _xscrollpos = -1;
@@ -340,8 +346,8 @@ void ApplePS2CypressTouchPad::packetReady()
 	  cypressSendByte(0xFE);
 	  return ;
 	}
-	  this->cypressProcessPacket(packet);
-      _ringBuffer.advanceTail(size);
+      this->cypressProcessPacket(packet);
+      _ringBuffer.advanceTail(kPacketLengthLarge);
       DEBUG_LOG("CYPRESS:  %s: packetReady END Loop: rest %d bytes in ringbuffer, size is %d\n", getName(), _ringBuffer.count(), size);
     }
 }
