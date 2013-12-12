@@ -267,6 +267,9 @@ private:
 	unsigned char			_cytp_rate[6];
 	unsigned char			_cytp_resolution[4];
 	int				_wakeDelay;
+	int				_pendingButtons;
+	int				_frameCounter;
+	char				_frameType;
 
 protected:
 	virtual void			setTouchPadEnable( bool enable );

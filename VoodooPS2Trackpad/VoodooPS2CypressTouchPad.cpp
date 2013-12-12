@@ -99,6 +99,9 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _ypos		       = -1;
     _xscrollpos		       = -1;
     _yscrollpos		       = -1;
+    _pendingButtons	       = 0;
+    _frameCounter	       = 0;
+    _frameType		       = -1;
 
     _cytp_resolution[0] =  0x00;
     _cytp_resolution[1] =  0x01;
@@ -316,39 +319,59 @@ void ApplePS2CypressTouchPad::packetReady()
       //this->myMemset(packet, 0, 8);
       if (_ringBuffer.count() < size)
 	return ;
-      //else
-      //bcopy(ptr, packet, size);
       // should be deleted once communication with PS2 cypress trackpad stable
-      //if (packet[0] || packet[1] || packet[2] || packet[3] || packet[4] || packet[5] || packet[6] || packet[7])
-      //DEBUG_LOG("CYPRESS: %s: packet dump { 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x }\n", getName(), packet[0], packet[1], packet[2], packet[3], packet[4], packet[5], packet[6], packet[7]);
+#ifdef DEBUG
+      if (packet[0] || packet[1] || packet[2] || packet[3] || packet[4] || packet[5] || packet[6] || packet[7])
+	DEBUG_LOG("CYPRESS: %s: packet dump { 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x }\n", getName(), packet[0], packet[1], packet[2], packet[3], packet[4], packet[5], packet[6], packet[7]);
+#endif
       fingers = fingersCount(packet[0]);
-      if (packet[0] == 0x00)
+      if (packet[0] == 0x00 && packet[1] == 0x00 && packet[2] == 0x00 && packet[3] == 0x00 && packet[4] == 0x00 && packet[5] == 0x00 && packet[6] == 0x00 && packet[7] == 0x00)
 	{
-	  // Empty packet, possible so no re-sync
+	  // Empty packet, received lots (500 bytes) when an action ends (finger leave)
 	  _ringBuffer.advanceTail(kPacketLengthLarge);
 	  _xpos = -1;
 	  _ypos = -1;
 	  _xscrollpos = -1;
 	  _yscrollpos = -1;
+	  if (_frameType == 1 && _frameCounter > 0 && _frameCounter < 4)
+	    {
+	      // simulate a tap here
+	      uint64_t	now_abs;
+	      clock_get_uptime(&now_abs);
+	      dispatchRelativePointerEventX(0, 0, 0x01, now_abs);
+	      clock_get_uptime(&now_abs);
+	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
+	    }
+	  _frameCounter = 0;
+	  _frameType = -1;
+	  if (_pendingButtons &&  packet[0] == 0 && packet[1] == 0 && packet[2] == 0 && packet[3] == 0 && packet[4] == 0 && packet[5] == 0 && packet[6] == 0 && packet[7] == 0) // buttons were used need to clear events
+	    {
+	      this->cypressProcessPacket(packet);
+	      _pendingButtons = 0;
+	    }
 	  continue ;
 	}
       if (((((packet[0] & 0x40) != 0x40) && ((packet[0] & 0x80) != 0x80) && ((packet[0] & 0x20) != 0x20) && (packet[0] > 2)))
-	  || ((packet[0] & 0x08) == 0x08 && fingers < 0) || ((packet[0] & 0x01) == 0x01 && (packet[0] & 0x02) == 0x02) || packet[4] == 0)
+	  || ((packet[0] & 0x08) == 0x08 && fingers < 0) || ((packet[0] & 0x01) == 0x01 && (packet[0] & 0x02) == 0x02)
+	  || (packet[0] == 0 && (packet[1] != 0x00 || packet[2] != 0x00 || packet[3] != 0x00 || packet[4] != 0x00 || packet[5] != 0x00 || packet[6] != 0x00 || packet[7] != 0x00) ))
 	{
-	  // incomplete packet : invalid header, no pressure, etc ... => drop queue and ask re-send (later i may scan for header ...)
+	  // incomplete packet : invalid header, de-sync'ed packets (start and ends in middle of 2 stored packets), etc ... => drop queue and ask re-send
 	  // Thanks to dudley at cypress for is (short but enought) doc sheet
 	  _xpos = -1;
 	  _ypos = -1;
 	  _xscrollpos = -1;
 	  _yscrollpos = -1;
 	  _packetByteCount = 0;
+	  _frameCounter = 0;
+	  _frameType = -1;
+	  _pendingButtons = 0;
 	  _ringBuffer.advanceTail(_ringBuffer.count());
 	  cypressSendByte(0xFE);
 	  return ;
 	}
       this->cypressProcessPacket(packet);
       _ringBuffer.advanceTail(kPacketLengthLarge);
-      DEBUG_LOG("CYPRESS:  %s: packetReady END Loop: rest %d bytes in ringbuffer, size is %d\n", getName(), _ringBuffer.count(), size);
+      //DEBUG_LOG("CYPRESS:  %s: packetReady END Loop: rest %d bytes in ringbuffer, size is %d\n", getName(), _ringBuffer.count(), size);
     }
 }
  
@@ -686,8 +709,10 @@ bool		ApplePS2CypressTouchPad::setAbsoluteMode()
 
 int		ApplePS2CypressTouchPad::packetSize(int len)
 {
+#ifdef DEBUG
   if (len != -1 && len != _packetLength)
     DEBUG_LOG("CYPRESS: Changing Pcket Size From %d to %d\n", _packetLength, len);
+#endif
   if (len == -1)
     return (_packetLength);
   _packetLength = len;
@@ -716,6 +741,12 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
   n = report_data.contact_cnt;
   if (n > CYTP_MAX_MT_SLOTS)
     n = CYTP_MAX_MT_SLOTS;
+  if (_frameType == -1) // not init yet
+    _frameType = n;
+  if (_frameType == n)
+    _frameCounter++;
+  else
+    _frameCounter = 0;
   if (n > 1)
     {
       // two, or more fingers
@@ -757,12 +788,10 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
       _ypos = y;
       buttons |= report_data.left ? 0x01 : 0;
       buttons |= report_data.right ? 0x02 : 0;
-      //buttons |= report_data.middle ? 0x04 : 0;
-      if (xdiff != 0 || ydiff != 0 || buttons != 0)
-	{
-	  DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
-	  dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
-	}
+      buttons |= report_data.tap ? 0x01 : 0; // tap to click attempt
+      _pendingButtons = buttons;
+      DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
+      dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
     }
 }
 
@@ -808,9 +837,11 @@ int		ApplePS2CypressTouchPad::cypressParsePacket(UInt8 *packet, struct cytp_repo
   int n = report_data->contact_cnt;
   if (n > CYTP_MAX_MT_SLOTS)
     n = CYTP_MAX_MT_SLOTS;
+#ifdef DEBUG
   for (i = 0; i < n; i++)
     DEBUG_LOG("CYPRESS: contacts[%d] = {%d, %d, %d}\n", i, report_data->contacts[i].x, report_data->contacts[i].y, report_data->contacts[i].z);
   DEBUG_LOG("CYPRESS: l=%d, r=%d, m=%d\n", report_data->left, report_data->right, report_data->middle);
+#endif
   return (0);
 }
 
@@ -857,11 +888,13 @@ void			ApplePS2CypressTouchPad::cypressReset()
   request.commandsCount = 2;
   assert(request.commandsCount <= countof(request.commands));
   _device->submitRequestAndBlock(&request);
+#ifdef DEBUG
   if (request.commandsCount != 2)
     DEBUG_LOG("CYPRESS: reset warning: incomplete answer\n");
   if (request.commands[0].inOrOut != 0xAA && request.commands[1].inOrOut != 0x00)
     DEBUG_LOG("CYPRESS: Failed to reset mouse, return values did not match. [0x%02x, 0x%02x]\n", request.commands[1].inOrOut, request.commands[2].inOrOut);
   else
     DEBUG_LOG("CYPRESS: Successful mouse reset [ 0x%02x, 0x%02x ]\n", request.commands[1].inOrOut, request.commands[2].inOrOut);
+#endif
   _tpMode = 0;
 }
