@@ -162,7 +162,7 @@
 #define RESP_REMOTE_BIT     0x40
 #define RESP_SMBUS_BIT      0x80
 
-#define CYTP_MAX_MT_SLOTS 2
+#define CYTP_MAX_MT_SLOTS 5
 
 #define CYTP_MAX_ZERO_CNT_COUNT	2
 

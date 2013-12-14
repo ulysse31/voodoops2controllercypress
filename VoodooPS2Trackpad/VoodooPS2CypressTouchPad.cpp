@@ -28,7 +28,7 @@
  * could not be done the same way ...
  * Thanks to Dudley Du from cypress for his short, but enought doc sheet
  * Ulysse31 aka Nix
- * ulysse31<at>gmail.com
+ * ulysse31<at>gmail<dot>com
  */
 
 
@@ -325,7 +325,8 @@ void ApplePS2CypressTouchPad::packetReady()
 	DEBUG_LOG("CYPRESS: %s: packet dump { 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x }\n", getName(), packet[0], packet[1], packet[2], packet[3], packet[4], packet[5], packet[6], packet[7]);
 #endif
       fingers = fingersCount(packet[0]);
-      if (packet[0] == 0x00 && packet[1] == 0x00 && packet[2] == 0x00 && packet[3] == 0x00 && packet[4] == 0x00 && packet[5] == 0x00 && packet[6] == 0x00 && packet[7] == 0x00)
+      if (packet[0] == 0x00 && packet[1] == 0x00 && packet[2] == 0x00 && packet[3] == 0x00
+	  && packet[4] == 0x00 && packet[5] == 0x00 && packet[6] == 0x00 && packet[7] == 0x00)
 	{
 	  // Empty packet, received lots (500 bytes) when an action ends (finger leave)
 	  _ringBuffer.advanceTail(kPacketLengthLarge);
@@ -333,7 +334,7 @@ void ApplePS2CypressTouchPad::packetReady()
 	  _ypos = -1;
 	  _xscrollpos = -1;
 	  _yscrollpos = -1;
-	  if (_frameType == 1 && _frameCounter > 0 && _frameCounter < 4)
+	  if (_frameType == 1 && _frameCounter > 0 && _frameCounter < 5)
 	    {
 	      // simulate a tap here
 	      uint64_t	now_abs;
@@ -344,7 +345,8 @@ void ApplePS2CypressTouchPad::packetReady()
 	    }
 	  _frameCounter = 0;
 	  _frameType = -1;
-	  if (_pendingButtons &&  packet[0] == 0 && packet[1] == 0 && packet[2] == 0 && packet[3] == 0 && packet[4] == 0 && packet[5] == 0 && packet[6] == 0 && packet[7] == 0) // buttons were used need to clear events
+	  if (_pendingButtons &&  packet[0] == 0 && packet[1] == 0 && packet[2] == 0 && packet[3] == 0
+	      && packet[4] == 0 && packet[5] == 0 && packet[6] == 0 && packet[7] == 0) // buttons were used need to clear events
 	    {
 	      this->cypressProcessPacket(packet);
 	      _pendingButtons = 0;
@@ -739,8 +741,8 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
   if (cypressParsePacket(pkt, &report_data))
     return;
   n = report_data.contact_cnt;
-  if (n > CYTP_MAX_MT_SLOTS)
-    n = CYTP_MAX_MT_SLOTS;
+//   if (n > CYTP_MAX_MT_SLOTS)
+//     n = CYTP_MAX_MT_SLOTS;
   if (_frameType == -1) // not init yet
     _frameType = n;
   if (_frameType == n)
@@ -767,6 +769,8 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	  _yscrollpos = y;
 	  //buttons |= report_data.left ? 0x01 : 0;
 	  //buttons |= report_data.right ? 0x02 : 0;
+	  xdiff /= 4;
+	  ydiff /= 4;
 	  DEBUG_LOG("CYPRESS: Sending Scroll event: %d,%d\n", xdiff, ydiff);
 	  dispatchScrollWheelEventX(-ydiff, -xdiff, 0, now_abs);
 	}
@@ -786,10 +790,11 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
       ydiff = y - _ypos;
       _xpos = x;
       _ypos = y;
-      buttons |= report_data.left ? 0x01 : 0;
+      buttons |= (report_data.left || report_data.tap) ? 0x01 : 0;
       buttons |= report_data.right ? 0x02 : 0;
-      buttons |= report_data.tap ? 0x01 : 0; // tap to click attempt
       _pendingButtons = buttons;
+      xdiff /= 2;
+      ydiff /= 2;
       DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
       dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
     }
@@ -833,11 +838,11 @@ int		ApplePS2CypressTouchPad::cypressParsePacket(UInt8 *packet, struct cytp_repo
   report_data->right = (header_byte & BTN_RIGHT_BIT) ? 1 : 0;
   // remove that for prod
   DEBUG_LOG("CYPRESS: Counting Fingers: %d, tap %d\n", report_data->contact_cnt, report_data->tap);
-  int i;
-  int n = report_data->contact_cnt;
-  if (n > CYTP_MAX_MT_SLOTS)
-    n = CYTP_MAX_MT_SLOTS;
 #ifdef DEBUG
+  int n = report_data->contact_cnt;
+//   if (n > CYTP_MAX_MT_SLOTS)
+//     n = CYTP_MAX_MT_SLOTS;
+  int i;
   for (i = 0; i < n; i++)
     DEBUG_LOG("CYPRESS: contacts[%d] = {%d, %d, %d}\n", i, report_data->contacts[i].x, report_data->contacts[i].y, report_data->contacts[i].z);
   DEBUG_LOG("CYPRESS: l=%d, r=%d, m=%d\n", report_data->left, report_data->right, report_data->middle);
@@ -864,10 +869,10 @@ bool		ApplePS2CypressTouchPad::setTouchpadModeByte()
   cypressQueryHardware();
   setAbsoluteMode();
   cypressSendByte(0xF6); // SetDefaults
-  //cypressSendByte(0xF3); // Set Rate
-  //cypressSendByte(200); // to 200dpi
-  //cypressSendByte(0xE8); // Set Resolution
-  //cypressSendByte(0x03); // to 8 count/mm
+  cypressSendByte(0xF3); // Set Rate
+  cypressSendByte(200); // to 200dpi
+  cypressSendByte(0xE8); // Set Resolution
+  cypressSendByte(0x03); // to 8 count/mm
   cypressSendByte(0xF4); // Set data reporting
 
   return (true);
