@@ -46,6 +46,33 @@ enum {
 };
 
 // =============================================================================
+// cypressFrame: coord analysis Class implementation
+//
+
+#define MAX_REPORTS	4
+#define abs(x) ((x) < 0 ? -(x) : (x))
+
+cypressFrame::cypressFrame(int max)
+{
+  _maxElems = max;
+  _list = 0;
+  _end = 0;
+  _elems = 0;
+}
+
+
+void		cypressFrame::addReport(t_reportData *p)
+{
+  //  int		k;
+  //  t_reportList	*l;
+
+  if (_elems == 0)
+    {
+      
+    }
+}
+
+// =============================================================================
 // ApplePS2CypressTouchPad Class Implementation
 //
 
@@ -97,11 +124,16 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _resolution                = (100) << 16; // (100 dpi, 4 counts/mm)
     _xpos		       = -1;
     _ypos		       = -1;
+    _x4pos		       = -1;
+    _y4pos		       = -1;
     _xscrollpos		       = -1;
     _yscrollpos		       = -1;
     _pendingButtons	       = 0;
     _frameCounter	       = 0;
     _frameType		       = -1;
+    _swipey		       = 0;
+    _swipex		       = 0;
+    _swiped		       = false;
 
     _cytp_resolution[0] =  0x00;
     _cytp_resolution[1] =  0x01;
@@ -332,6 +364,8 @@ void ApplePS2CypressTouchPad::packetReady()
 	  _ringBuffer.advanceTail(kPacketLengthLarge);
 	  _xpos = -1;
 	  _ypos = -1;
+	  _x4pos = -1;
+	  _y4pos = -1;
 	  _xscrollpos = -1;
 	  _yscrollpos = -1;
 	  if (_frameType == 1 && _frameCounter > 0 && _frameCounter < 5)
@@ -343,8 +377,20 @@ void ApplePS2CypressTouchPad::packetReady()
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
 	    }
+	  if (_frameType == 3 && _frameCounter > 0 && _frameCounter < 5)
+	    {
+	      // simulate a tap here
+	      uint64_t	now_abs;
+	      clock_get_uptime(&now_abs);
+	      dispatchRelativePointerEventX(0, 0, 0x01, now_abs);
+	      clock_get_uptime(&now_abs);
+	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
+	    }
 	  _frameCounter = 0;
 	  _frameType = -1;
+	  _swipey = 0;
+	  _swipex = 0;
+	  _swiped = false;
 	  if (_pendingButtons &&  packet[0] == 0 && packet[1] == 0 && packet[2] == 0 && packet[3] == 0
 	      && packet[4] == 0 && packet[5] == 0 && packet[6] == 0 && packet[7] == 0) // buttons were used need to clear events
 	    {
@@ -361,11 +407,16 @@ void ApplePS2CypressTouchPad::packetReady()
 	  // Thanks to dudley at cypress for is (short but enought) doc sheet
 	  _xpos = -1;
 	  _ypos = -1;
+	  _x4pos = -1;
+	  _y4pos = -1;
 	  _xscrollpos = -1;
 	  _yscrollpos = -1;
 	  _packetByteCount = 0;
 	  _frameCounter = 0;
 	  _frameType = -1;
+	  _swipey = 0;
+	  _swipex = 0;
+	  _swiped = false;
 	  _pendingButtons = 0;
 	  _ringBuffer.advanceTail(_ringBuffer.count());
 	  cypressSendByte(0xFE);
@@ -737,27 +788,77 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
   struct cytp_report_data	report_data;
   int				n;
 
-  clock_get_uptime(&now_abs);
+
   if (cypressParsePacket(pkt, &report_data))
     return;
   n = report_data.contact_cnt;
+  if (n < 0)
+    return ;
 //   if (n > CYTP_MAX_MT_SLOTS)
 //     n = CYTP_MAX_MT_SLOTS;
-  if (_frameType == -1) // not init yet
-    _frameType = n;
+//   if ((_frameType >= 1) && _frameType != n) // discard packet, need to reset counters
+//     return ;
+  //  if (_frameType == -1)
+  //    _frameType = n;
   if (_frameType == n)
     _frameCounter++;
   else
-    _frameCounter = 0;
+    _frameCounter = 1;
+  _frameType = n;
+  clock_get_uptime(&now_abs);
   if (n > 1)
     {
       // two, or more fingers
-      if (n == 2)
+      if (n == 4)
+	{
+	  int x = report_data.contacts[0].x;
+	  int y = report_data.contacts[0].y;
+	  DEBUG_LOG("CYPRESS: old coord: _xpos=%d _ypos=%d\n", _xpos, _ypos);
+	  if (_x4pos < 0)
+	    _x4pos = x;
+	  if (_y4pos < 0)
+	    _y4pos = y;
+	  xdiff = x - _x4pos;
+	  ydiff = y - _y4pos;
+	  _swipey += ydiff;
+	  _swipex += xdiff;
+	  if (_frameCounter >= 2 && _swiped == false && (abs(_swipex) > 10 ||  abs(_swipey) > 10))
+	    {
+	      DEBUG_LOG("CYPRESS: 4 Finger swipe : _swipex=%d _swipey=%d\n", _swipex, _swipey);
+	      if (abs(_swipex) < abs(_swipey))
+		_device->dispatchKeyboardMessage((_swipey < 0 ? kPS2M_swipeUp : kPS2M_swipeDown), &now_abs);
+	      else
+		_device->dispatchKeyboardMessage((_swipex < 0 ? kPS2M_swipeLeft : kPS2M_swipeRight), &now_abs);
+	      _swiped = true;
+	      _swipey = 0;
+	      _swipex = 0;
+	    }
+	}
+      if (n == 3 && _frameCounter >= 2)
+	{
+	  int x = report_data.contacts[0].x;
+	  int y = report_data.contacts[0].y;
+	  DEBUG_LOG("CYPRESS: old coord: _xpos=%d _ypos=%d\n", _xpos, _ypos);
+	  if (_xpos < 0)
+	    _xpos = x;
+	  if (_ypos < 0)
+	    _ypos = y;
+	  xdiff = x - _xpos;
+	  ydiff = y - _ypos;
+	  _xpos = x;
+	  _ypos = y;
+	  buttons |= 0x01; // three fingers window move
+	  _pendingButtons = buttons;
+	  xdiff /= 2;
+	  ydiff /= 2;
+	  DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
+	  dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
+	}
+      if (n == 2 && _frameCounter >= 2)
 	{
 	  // two fingers
 	  int x = report_data.contacts[0].x;
 	  int y = report_data.contacts[0].y;
-	  //int z = report_data.contacts[0].z;
 	  DEBUG_LOG("CYPRESS: old scroll coord: _xscrollpos=%d _yscrollpos=%d\n", _xscrollpos, _yscrollpos);
 	  if (_xscrollpos < 0)
 	    _xscrollpos = x;
@@ -777,17 +878,17 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
     }
   else
     {
+	
       // one finger
       int x = report_data.contacts[0].x;
       int y = report_data.contacts[0].y;
-      //int z = report_data.contacts[0].z;
       DEBUG_LOG("CYPRESS: old coord: _xpos=%d _ypos=%d\n", _xpos, _ypos);
       if (_xpos < 0)
 	_xpos = x;
       if (_ypos < 0)
 	_ypos = y;
-      xdiff = x - _xpos;
-      ydiff = y - _ypos;
+      xdiff = (n == 0 ? 0 : x - _xpos);
+      ydiff = (n == 0 ? 0 : y - _ypos);
       _xpos = x;
       _ypos = y;
       buttons |= (report_data.left || report_data.tap) ? 0x01 : 0;

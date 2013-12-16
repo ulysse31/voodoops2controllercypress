@@ -33,6 +33,7 @@
 #ifndef _APPLEPS2SYNAPTICSTOUCHPAD_H
 #define _APPLEPS2SYNAPTICSTOUCHPAD_H
 
+
 #include "ApplePS2MouseDevice.h"
 #include <IOKit/hidsystem/IOHIPointing.h>
 
@@ -173,14 +174,15 @@ struct cytp_contact {
 };
 
 /* The structure of Cypress Trackpad event data. */
-struct cytp_report_data {
-  int contact_cnt;
-  struct cytp_contact contacts[CYTP_MAX_MT_SLOTS];
-  unsigned int left:1;
-  unsigned int right:1;
-  unsigned int middle:1;
-  unsigned int tap:1;  /* multi-finger tap detected. */
-};
+typedef struct		cytp_report_data
+{
+  int			contact_cnt;
+  struct cytp_contact	contacts[CYTP_MAX_MT_SLOTS];
+  unsigned int		left:1;
+  unsigned int		right:1;
+  unsigned int		middle:1;
+  unsigned int		tap:1;  /* multi-finger tap detected. */
+}			t_reportData;
 
 /* The structure of Cypress Trackpad device private data. */
 struct cytp_data {
@@ -202,6 +204,26 @@ struct cytp_data {
   int tp_metrics_supported;
 };
 
+typedef struct		s_reportList
+{
+  t_reportData		report;
+  struct s_reportlist	*next;
+}			t_reportList;
+
+class		cypressFrame
+{
+ public:
+  cypressFrame(int max = 3);
+  void		addReport(t_reportData *p);
+  void		flushReports();
+ protected:
+  void		slide();
+ private:
+ t_reportList	*_list;
+  t_reportList	*_end;
+  int		_elems;
+  int		_maxElems;
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // ApplePS2CypressTouchPad Class Declaration
@@ -214,24 +236,6 @@ struct cytp_data {
 #define kPacketLengthSmall  5
 #define kPacketLengthLarge  8
 #define kPacketLengthMax    8
-
-
-
-typedef struct	s_clicks
-{
-  char		left;
-  char		right;
-  char		middle;
-  char		contacts;
-}		t_clicks;
-
-typedef	union	u_buttonState
-{
-  int		pushed;
-  t_clicks	buttons;
-}		t_buttonState;
-
-
 
 class EXPORT ApplePS2CypressTouchPad : public IOHIPointing
 {
@@ -246,8 +250,8 @@ private:
 	UInt32				_packetByteCount;
 	IOFixed				_resolution;
 	UInt16				_touchPadVersion;
-	SInt32				_xpos, _xscrollpos;
-	SInt32				_ypos, _yscrollpos;
+	SInt32				_xpos, _x4pos, _xscrollpos;
+	SInt32				_ypos, _y4pos, _yscrollpos;
 	int				_fingerCount;
 	int				_rawFingerValue; // raw value for finger count
 	UInt32				_packetLength;
@@ -270,6 +274,9 @@ private:
 	int				_pendingButtons;
 	int				_frameCounter;
 	char				_frameType;
+	int				_swipex;
+	int				_swipey;
+	bool				_swiped;
 
 protected:
 	virtual void			setTouchPadEnable( bool enable );
