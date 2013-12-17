@@ -368,6 +368,10 @@ void ApplePS2CypressTouchPad::packetReady()
 	  _y4pos = -1;
 	  _xscrollpos = -1;
 	  _yscrollpos = -1;
+#ifdef DEBUG
+	  if (_frameType >= 0)
+	    DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d\n", _frameType, _frameCounter);
+#endif
 	  if (_frameType == 1 && _frameCounter > 0 && _frameCounter < 5)
 	    {
 	      // simulate a tap here
@@ -376,6 +380,7 @@ void ApplePS2CypressTouchPad::packetReady()
 	      dispatchRelativePointerEventX(0, 0, 0x01, now_abs);
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
+	      DEBUG_LOG("CYPRESS: one finger tap detected\n");
 	    }
 	  if (_frameType == 3 && _frameCounter > 0 && _frameCounter < 5)
 	    {
@@ -385,6 +390,7 @@ void ApplePS2CypressTouchPad::packetReady()
 	      dispatchRelativePointerEventX(0, 0, 0x01, now_abs);
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
+	      DEBUG_LOG("CYPRESS: three fingers tap detected\n");
 	    }
 	  _frameCounter = 0;
 	  _frameType = -1;
@@ -828,7 +834,7 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	      if (abs(_swipex) < abs(_swipey))
 		_device->dispatchKeyboardMessage((_swipey < 0 ? kPS2M_swipeUp : kPS2M_swipeDown), &now_abs);
 	      else
-		_device->dispatchKeyboardMessage((_swipex < 0 ? kPS2M_swipeLeft : kPS2M_swipeRight), &now_abs);
+		_device->dispatchKeyboardMessage((_swipex < 0 ? kPS2M_swipeRight : kPS2M_swipeLeft), &now_abs);
 	      _swiped = true;
 	      _swipey = 0;
 	      _swipex = 0;
@@ -873,7 +879,10 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	  xdiff /= 4;
 	  ydiff /= 4;
 	  DEBUG_LOG("CYPRESS: Sending Scroll event: %d,%d\n", xdiff, ydiff);
-	  dispatchScrollWheelEventX(-ydiff, -xdiff, 0, now_abs);
+	  if (abs(xdiff) > abs(ydiff))
+	    dispatchScrollWheelEventX(0, -xdiff, 0, now_abs);
+	  else
+	    dispatchScrollWheelEventX(-ydiff, 0, 0, now_abs);
 	}
     }
   else
@@ -970,10 +979,10 @@ bool		ApplePS2CypressTouchPad::setTouchpadModeByte()
   cypressQueryHardware();
   setAbsoluteMode();
   cypressSendByte(0xF6); // SetDefaults
-  cypressSendByte(0xF3); // Set Rate
-  cypressSendByte(200); // to 200dpi
-  cypressSendByte(0xE8); // Set Resolution
-  cypressSendByte(0x03); // to 8 count/mm
+  //cypressSendByte(0xF3); // Set Rate
+  //cypressSendByte(200); // to 200dpi
+  //cypressSendByte(0xE8); // Set Resolution
+  //cypressSendByte(0x03); // to 8 count/mm
   cypressSendByte(0xF4); // Set data reporting
 
   return (true);
