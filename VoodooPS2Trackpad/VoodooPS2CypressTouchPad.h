@@ -274,9 +274,23 @@ private:
 	int				_pendingButtons;
 	int				_frameCounter;
 	char				_frameType;
+	unsigned char			_tapFrameMax;
 	int				_swipex;
 	int				_swipey;
 	bool				_swiped;
+	unsigned char			_swipexThreshold;
+	unsigned char			_swipeyThreshold;
+	unsigned char			_twoFingersMaxCount;
+	unsigned char			_threeFingersMaxCount;
+	unsigned char			_fourFingersMaxCount;
+	unsigned char			_onefingervdivider;
+	unsigned char			_onefingerhdivider;
+	unsigned char			_twofingervdivider;
+	unsigned char			_twofingerhdivider;
+	unsigned char			_threefingervdivider;
+	unsigned char			_threefingerhdivider;
+	unsigned char			_fourfingervdivider;
+	unsigned char			_fourfingerhdivider;
 
 protected:
 	virtual void			setTouchPadEnable( bool enable );
