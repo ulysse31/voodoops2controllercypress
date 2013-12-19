@@ -291,6 +291,12 @@ private:
 	unsigned char			_threefingerhdivider;
 	unsigned char			_fourfingervdivider;
 	unsigned char			_fourfingerhdivider;
+	// System properties
+	bool				_trackpadScroll;
+	bool				_dragLock;
+	bool				_dragging;
+	bool				_trackpadHorizScroll;
+	bool				_clicking;
 
 protected:
 	virtual void			setTouchPadEnable( bool enable );

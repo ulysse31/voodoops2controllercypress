@@ -368,6 +368,12 @@ void ApplePS2CypressTouchPad::packetReady()
       if (_ringBuffer.count() < size)
 	return ;
       // should be deleted once communication with PS2 cypress trackpad stable
+      // v34 and later seems to send 0x04 header with 4 fingers touch (??), so lets make a little trick ...
+      if (_touchPadVersion >= 34 && packet[0] == 0x04)
+	{
+	  DEBUG_LOG("CYPRESS: %s: patching header for buggy firmware ...\n", getName());
+	  packet[0] = 0x20; // 4 fingers should be 0x20 ...
+	}
 #ifdef DEBUG
       if (packet[0] || packet[1] || packet[2] || packet[3] || packet[4] || packet[5] || packet[6] || packet[7])
 	DEBUG_LOG("CYPRESS: %s: packet dump { 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x }\n", getName(), packet[0], packet[1], packet[2], packet[3], packet[4], packet[5], packet[6], packet[7]);
@@ -388,7 +394,7 @@ void ApplePS2CypressTouchPad::packetReady()
 	  if (_frameType >= 0)
 	    DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d\n", _frameType, _frameCounter);
 #endif
-	  if (_frameType == 1 && _frameCounter > 0 && _frameCounter < _tapFrameMax)
+	  if (_clicking && _frameType == 1 && _frameCounter > 0 && _frameCounter < _tapFrameMax)
 	    {
 	      // simulate a tap here
 	      uint64_t	now_abs;
@@ -468,6 +474,12 @@ void		ApplePS2CypressTouchPad::setTouchPadEnable( bool enable )
 
 IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
 {
+  OSNumber * clicking = OSDynamicCast( OSNumber, dict->getObject("Clicking") );
+  OSNumber * dragging = OSDynamicCast( OSNumber, dict->getObject("Dragging") );
+  OSNumber * draglock = OSDynamicCast( OSNumber, dict->getObject("DragLock") );
+  OSNumber * hscroll  = OSDynamicCast( OSNumber, dict->getObject("TrackpadHorizScroll") );
+  OSNumber * vscroll  = OSDynamicCast( OSNumber, dict->getObject("TrackpadScroll") );
+
 #ifdef DEBUG
   OSCollectionIterator* iter = OSCollectionIterator::withCollection( dict );
   OSObject* obj;
@@ -477,7 +489,6 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
     {
       OSString* str = OSDynamicCast( OSString, obj );
       OSNumber* val = OSDynamicCast( OSNumber, dict->getObject( str ) );
-
       if (val)
 	DEBUG_LOG("%s: Dictionary Object: %s Value: %d\n", getName(),
 		  str->getCStringNoCopy(), val->unsigned32BitValue());
@@ -486,6 +497,32 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
 		  str->getCStringNoCopy());
     }
 #endif
+  if (clicking)
+    {
+      _clicking = clicking->unsigned32BitValue() & 0x1 ? true : false;
+      setProperty("Clicking", dragging);
+    }
+  if (dragging)
+    {
+      _dragging = dragging->unsigned32BitValue() & 0x1 ? true : false;
+      setProperty("Dragging", dragging);
+    }
+
+  if (draglock)
+    {
+      _dragLock = draglock->unsigned32BitValue() & 0x1 ? true : false;
+      setProperty("DragLock", draglock);
+    }
+  if (hscroll)
+    {
+      _trackpadHorizScroll = hscroll->unsigned32BitValue() & 0x1 ? true : false;
+      setProperty("TrackpadHorizScroll", hscroll);
+    }
+  if (vscroll)
+    {
+      _trackpadScroll = vscroll->unsigned32BitValue() & 0x1 ? true : false;
+      setProperty("TrackpadScroll", vscroll);
+    }
 
   return super::setParamProperties(dict);
 }
@@ -887,7 +924,7 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	  DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
 	  dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
 	}
-      if (n == 2 && _frameCounter >= _twoFingersMaxCount)
+      if (_trackpadScroll && n == 2 && _frameCounter >= _twoFingersMaxCount)
 	{
 	  // two fingers
 	  int x = report_data.contacts[0].x;
@@ -906,7 +943,7 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	  xdiff /= _twofingerhdivider;
 	  ydiff /= _twofingervdivider;
 	  DEBUG_LOG("CYPRESS: Sending Scroll event: %d,%d\n", xdiff, ydiff);
-	  if (abs(xdiff) > abs(ydiff))
+	  if (_trackpadHorizScroll && abs(xdiff) > abs(ydiff))
 	    dispatchScrollWheelEventX(0, -xdiff, 0, now_abs);
 	  else
 	    dispatchScrollWheelEventX(-ydiff, 0, 0, now_abs);
