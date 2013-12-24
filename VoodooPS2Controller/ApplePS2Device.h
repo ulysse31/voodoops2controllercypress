@@ -511,6 +511,8 @@ enum
     kPS2M_swipeUp,
     kPS2M_swipeLeft,
     kPS2M_swipeRight,
+    kPS2M_screenLock,
+    kPS2M_sleepComputer,
 };
 
 typedef struct PS2KeyInfo

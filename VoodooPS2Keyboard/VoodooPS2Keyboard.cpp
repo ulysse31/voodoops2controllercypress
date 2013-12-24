@@ -54,6 +54,8 @@
 #define kActionSwipeDown                    "ActionSwipeDown"
 #define kActionSwipeLeft                    "ActionSwipeLeft"
 #define kActionSwipeRight                   "ActionSwipeRight"
+#define kActionScreenLock                   "ActionScreenLock"
+#define kActionSleepComputer                "ActionSleepComputer"
 
 // Constants for other services to communicate with
 
@@ -243,6 +245,8 @@ bool ApplePS2Keyboard::init(OSDictionary * dict)
     parseAction("3b d, 37 d, 7d d, 7d u, 37 u, 3b u", _actionSwipeDown, countof(_actionSwipeDown));
     parseAction("3b d, 37 d, 7b d, 7b u, 37 u, 3b u", _actionSwipeLeft, countof(_actionSwipeLeft));
     parseAction("3b d, 37 d, 7c d, 7c u, 37 u, 3b u", _actionSwipeRight, countof(_actionSwipeRight));
+    parseAction("3b d, 38 d, 92 d, 92 u, 38 u, 3b u", _actionScreenLock, countof(_actionScreenLock));
+    parseAction("37 d, 3a d, 92 d, 92 u, 3a u, 37 u", _actionSleepComputer, countof(_actionSleepComputer));
 
     //
     // Load settings specfic to the Platform Profile...
@@ -287,6 +291,8 @@ bool ApplePS2Keyboard::init(OSDictionary * dict)
     logKeySequence("Swipe Down:", _actionSwipeDown);
     logKeySequence("Swipe Left:", _actionSwipeLeft);
     logKeySequence("Swipe Right:", _actionSwipeRight);
+    logKeySequence("Lock Screen:", _actionScreenLock);
+    logKeySequence("Sleep Computer:", _actionSleepComputer);
 #endif
     
     return true;
@@ -830,6 +836,19 @@ void ApplePS2Keyboard::setParamPropertiesGated(OSDictionary * dict)
         parseAction(str->getCStringNoCopy(), _actionSwipeRight, countof(_actionSwipeRight));
         setProperty(kActionSwipeRight, str);
     }
+    str = OSDynamicCast(OSString, dict->getObject(kActionScreenLock));
+    if (str)
+    {
+        parseAction(str->getCStringNoCopy(), _actionScreenLock, countof(_actionScreenLock));
+        setProperty(kActionScreenLock, str);
+    }
+    str = OSDynamicCast(OSString, dict->getObject(kActionSleepComputer));
+    if (str)
+    {
+        parseAction(str->getCStringNoCopy(), _actionSleepComputer, countof(_actionSleepComputer));
+        setProperty(kActionSleepComputer, str);
+    }
+
 }
 
 IOReturn ApplePS2Keyboard::setParamProperties(OSDictionary *dict)
@@ -1524,6 +1543,15 @@ void ApplePS2Keyboard::receiveMessage(int message, void* data)
 			DEBUG_LOG("ApplePS2Keyboard: Synaptic Trackpad call Swipe Up\n");
             sendKeySequence(_actionSwipeUp);
             break;
+        case kPS2M_screenLock:
+			DEBUG_LOG("ApplePS2Keyboard: Synaptic Trackpad call Screen Lock\n");
+            sendKeySequence(_actionScreenLock);
+            break;
+        case kPS2M_sleepComputer:
+			DEBUG_LOG("ApplePS2Keyboard: Synaptic Trackpad call Sleep Computer\n");
+            sendKeySequence(_actionSleepComputer);
+            break;
+
     }
 }
 

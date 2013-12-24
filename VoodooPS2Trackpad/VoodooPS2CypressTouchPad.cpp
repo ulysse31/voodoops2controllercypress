@@ -135,6 +135,7 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _swipex			= 0;
     _swiped			= false;
     _tapFrameMax		= 5;
+    _lockFrameMin		= 40;
     _swipexThreshold		= 10;
     _swipeyThreshold		= 10;
     _twoFingersMaxCount		= 2;
@@ -146,6 +147,9 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _twofingerhdivider		= 4;
     _threefingervdivider	= 2;
     _threefingerhdivider	= 2;
+
+    _fiveFingersTimer		= 0;
+    _slept			= false;
 
     _cytp_resolution[0] =  0x00;
     _cytp_resolution[1] =  0x01;
@@ -199,7 +203,10 @@ ApplePS2CypressTouchPad* ApplePS2CypressTouchPad::probe( IOService * provider, S
     cypressReset();
     success = cypressReadFwVersion();
     if (success &&_touchPadVersion > 11)
-      _tapFrameMax = 11;
+      {
+	_tapFrameMax = 11;
+	_lockFrameMin = 80; // sync packet rate is superior on > 11 firmware ... should be good ... (not tested) ...
+      }
     _device = 0;
     DEBUG_LOG("CYPRESS: ApplePS2CypressTouchPad::probe leaving.\n");
 
@@ -210,8 +217,9 @@ ApplePS2CypressTouchPad* ApplePS2CypressTouchPad::probe( IOService * provider, S
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 bool ApplePS2CypressTouchPad::start( IOService * provider )
-{ 
+{
     UInt64 enabledProperty;
+    UInt64 disabledProperty;
 
     //
     // The driver has been instructed to start. This is called after a
@@ -238,15 +246,25 @@ bool ApplePS2CypressTouchPad::start( IOService * provider )
     // Advertise some supported features (tapping, edge scrolling).
     //
 
+
     enabledProperty = 1; 
+    disabledProperty = 0; 
 
     setProperty("Clicking", enabledProperty, 
         sizeof(enabledProperty) * 8);
+    setProperty("DragLock", disabledProperty, 
+        sizeof(disabledProperty) * 8);
+    setProperty("Dragging", disabledProperty, 
+        sizeof(disabledProperty) * 8);
     setProperty("TrackpadScroll", enabledProperty, 
         sizeof(enabledProperty) * 8);
     setProperty("TrackpadHorizScroll", enabledProperty, 
         sizeof(enabledProperty) * 8);
 
+    setProperty("TrackpadFourFingerHorizSwipeGesture", enabledProperty, 
+        sizeof(enabledProperty) * 8);
+    setProperty("TrackpadThreeFingerDrag", enabledProperty, 
+        sizeof(enabledProperty) * 8);
     //
     // Must add this property to let our superclass know that it should handle
     // trackpad acceleration settings from user space.  Without this, tracking
@@ -414,11 +432,21 @@ void ApplePS2CypressTouchPad::packetReady()
 	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
 	      DEBUG_LOG("CYPRESS: three fingers tap detected\n");
 	    }
+	  if (_frameType == 5 && _frameCounter > _lockFrameMin)
+	    {
+	      // Lock Screen here
+	      uint64_t	now_abs;
+	      clock_get_uptime(&now_abs);
+	      _device->dispatchKeyboardMessage(kPS2M_screenLock, &now_abs);
+	      DEBUG_LOG("CYPRESS: 5 fingers long frame detected (size=%d), locking screen\n", _frameCounter);
+	    }
 	  _frameCounter = 0;
 	  _frameType = -1;
 	  _swipey = 0;
 	  _swipex = 0;
 	  _swiped = false;
+	  _fiveFingersTimer = 0;
+	  _slept = false;
 	  if (_pendingButtons &&  packet[0] == 0 && packet[1] == 0 && packet[2] == 0 && packet[3] == 0
 	      && packet[4] == 0 && packet[5] == 0 && packet[6] == 0 && packet[7] == 0) // buttons were used need to clear events
 	    {
@@ -446,6 +474,8 @@ void ApplePS2CypressTouchPad::packetReady()
 	  _swipex = 0;
 	  _swiped = false;
 	  _pendingButtons = 0;
+	  _fiveFingersTimer = 0;
+	  _slept = false;
 	  _ringBuffer.advanceTail(_ringBuffer.count());
 	  cypressSendByte(0xFE);
 	  return ;
@@ -872,12 +902,25 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
   if (_frameType == n)
     _frameCounter++;
   else
-    _frameCounter = 1;
+    _frameCounter = (_frameType >= 4 && n == 1 ? 0 : 1); // last was 4 fingers, may have leading fingers ...
   _frameType = n;
   clock_get_uptime(&now_abs);
   if (n > 1)
     {
       // two, or more fingers
+
+      if (n == 5)
+	{
+	  if (_fiveFingersTimer == 0)
+	    _fiveFingersTimer = now_abs;
+	  else
+	    if ((now_abs - _fiveFingersTimer) > 3000000000 && _slept == false)
+	      {
+		_device->dispatchKeyboardMessage(kPS2M_sleepComputer, &now_abs);
+		_slept = true;
+		return ;
+	      }
+	}
       if (n == 4)
 	{
 	  int x = report_data.contacts[0].x;
@@ -895,7 +938,7 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	      && (abs(_swipex) > _swipexThreshold ||  abs(_swipey) > _swipeyThreshold))
 	    {
 	      DEBUG_LOG("CYPRESS: 4 Finger swipe : _swipex=%d _swipey=%d\n", _swipex, _swipey);
-	      if (abs(_swipex) < abs(_swipey))
+	      if (abs(_swipex) < abs((_swipey * 3) / 2)) // need to keep ratio between x and y => y is less surface in size
 		_device->dispatchKeyboardMessage((_swipey < 0 ? kPS2M_swipeUp : kPS2M_swipeDown), &now_abs);
 	      else
 		_device->dispatchKeyboardMessage((_swipex < 0 ? kPS2M_swipeRight : kPS2M_swipeLeft), &now_abs);

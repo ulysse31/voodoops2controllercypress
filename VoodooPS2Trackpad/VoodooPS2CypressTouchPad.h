@@ -275,6 +275,7 @@ private:
 	int				_frameCounter;
 	char				_frameType;
 	unsigned char			_tapFrameMax;
+	unsigned char			_lockFrameMin;
 	int				_swipex;
 	int				_swipey;
 	bool				_swiped;
@@ -291,6 +292,9 @@ private:
 	unsigned char			_threefingerhdivider;
 	unsigned char			_fourfingervdivider;
 	unsigned char			_fourfingerhdivider;
+	uint64_t			_fiveFingersTimer;
+	bool				_slept;
+
 	// System properties
 	bool				_trackpadScroll;
 	bool				_dragLock;
