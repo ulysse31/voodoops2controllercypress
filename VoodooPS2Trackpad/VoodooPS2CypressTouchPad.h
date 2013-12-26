@@ -274,6 +274,7 @@ private:
 	int				_pendingButtons;
 	int				_frameCounter;
 	char				_frameType;
+	uint64_t			_frameTimer;
 	unsigned char			_tapFrameMax;
 	unsigned char			_lockFrameMin;
 	int				_swipex;
@@ -286,14 +287,15 @@ private:
 	unsigned char			_fourFingersMaxCount;
 	unsigned char			_onefingervdivider;
 	unsigned char			_onefingerhdivider;
-	unsigned char			_twofingervdivider;
-	unsigned char			_twofingerhdivider;
+	float				_twofingervdivider;
+	float				_twofingerhdivider;
 	unsigned char			_threefingervdivider;
 	unsigned char			_threefingerhdivider;
 	unsigned char			_fourfingervdivider;
 	unsigned char			_fourfingerhdivider;
-	uint64_t			_fiveFingersTimer;
+	unsigned char			_rightClicked;
 	bool				_slept;
+
 
 	// System properties
 	bool				_trackpadScroll;

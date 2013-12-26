@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2002 Apple Computer, Inc. All rights reserved.
  *
@@ -147,8 +148,9 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _twofingerhdivider		= 4;
     _threefingervdivider	= 2;
     _threefingerhdivider	= 2;
+    _rightClicked		= 0;
 
-    _fiveFingersTimer		= 0;
+    _frameTimer			= 0;
     _slept			= false;
 
     _cytp_resolution[0] =  0x00;
@@ -387,11 +389,10 @@ void ApplePS2CypressTouchPad::packetReady()
 	return ;
       // should be deleted once communication with PS2 cypress trackpad stable
       // v34 and later seems to send 0x04 header with 4 fingers touch (??), so lets make a little trick ...
-      if (_touchPadVersion >= 34 && packet[0] == 0x04)
-	{
-	  DEBUG_LOG("CYPRESS: %s: patching header for buggy firmware ...\n", getName());
-	  packet[0] = 0x20; // 4 fingers should be 0x20 ...
-	}
+      if (_touchPadVersion >= 34 && (packet[0] == 0x04))
+	    packet[0] = 0x20; // 4 fingers should be 0x20 ...
+      if (_touchPadVersion >= 34 && (packet[0] == 0x44))
+	    packet[0] = 0xa0; // 5 fingers should be 0xa0 ...
 #ifdef DEBUG
       if (packet[0] || packet[1] || packet[2] || packet[3] || packet[4] || packet[5] || packet[6] || packet[7])
 	DEBUG_LOG("CYPRESS: %s: packet dump { 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x }\n", getName(), packet[0], packet[1], packet[2], packet[3], packet[4], packet[5], packet[6], packet[7]);
@@ -401,6 +402,8 @@ void ApplePS2CypressTouchPad::packetReady()
 	  && packet[4] == 0x00 && packet[5] == 0x00 && packet[6] == 0x00 && packet[7] == 0x00)
 	{
 	  // Empty packet, received lots (500 bytes) when an action ends (finger leave)
+	  uint64_t	now_abs;
+	  clock_get_uptime(&now_abs);
 	  _ringBuffer.advanceTail(kPacketLengthLarge);
 	  _xpos = -1;
 	  _ypos = -1;
@@ -410,33 +413,39 @@ void ApplePS2CypressTouchPad::packetReady()
 	  _yscrollpos = -1;
 #ifdef DEBUG
 	  if (_frameType >= 0)
-	    DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d\n", _frameType, _frameCounter);
+	    DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d, _frameTimer %llu\n", _frameType, _frameCounter, _frameTimer);
 #endif
-	  if (_clicking && _frameType == 1 && _frameCounter > 0 && _frameCounter < _tapFrameMax)
+	  if (_clicking && _frameType == 1 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
 	    {
 	      // simulate a tap here
-	      uint64_t	now_abs;
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x01, now_abs);
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
 	      DEBUG_LOG("CYPRESS: one finger tap detected\n");
 	    }
-	  if (_frameType == 3 && _frameCounter > 0 && _frameCounter < _tapFrameMax)
+	  if (_frameType == 2 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
 	    {
 	      // simulate a tap here
-	      uint64_t	now_abs;
+	      clock_get_uptime(&now_abs);
+	      dispatchRelativePointerEventX(0, 0, 0x02, now_abs);
+	      _rightClicked = 3;
+	      clock_get_uptime(&now_abs);
+	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
+	      DEBUG_LOG("CYPRESS: two fingers tap detected\n");
+	    }
+	  if (_frameType == 3 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
+	    {
+	      // simulate a tap here
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x01, now_abs);
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
 	      DEBUG_LOG("CYPRESS: three fingers tap detected\n");
 	    }
-	  if (_frameType == 5 && _frameCounter > _lockFrameMin)
+	  if (_frameType == 5 && (now_abs - _frameTimer) > 800000000 && _slept == false) // 800ms, a bit less than 1 sec
 	    {
 	      // Lock Screen here
-	      uint64_t	now_abs;
-	      clock_get_uptime(&now_abs);
 	      _device->dispatchKeyboardMessage(kPS2M_screenLock, &now_abs);
 	      DEBUG_LOG("CYPRESS: 5 fingers long frame detected (size=%d), locking screen\n", _frameCounter);
 	    }
@@ -445,7 +454,7 @@ void ApplePS2CypressTouchPad::packetReady()
 	  _swipey = 0;
 	  _swipex = 0;
 	  _swiped = false;
-	  _fiveFingersTimer = 0;
+	  _frameTimer = 0;
 	  _slept = false;
 	  if (_pendingButtons &&  packet[0] == 0 && packet[1] == 0 && packet[2] == 0 && packet[3] == 0
 	      && packet[4] == 0 && packet[5] == 0 && packet[6] == 0 && packet[7] == 0) // buttons were used need to clear events
@@ -474,7 +483,7 @@ void ApplePS2CypressTouchPad::packetReady()
 	  _swipex = 0;
 	  _swiped = false;
 	  _pendingButtons = 0;
-	  _fiveFingersTimer = 0;
+	  _frameTimer = 0;
 	  _slept = false;
 	  _ringBuffer.advanceTail(_ringBuffer.count());
 	  cypressSendByte(0xFE);
@@ -509,6 +518,7 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
   OSNumber * draglock = OSDynamicCast( OSNumber, dict->getObject("DragLock") );
   OSNumber * hscroll  = OSDynamicCast( OSNumber, dict->getObject("TrackpadHorizScroll") );
   OSNumber * vscroll  = OSDynamicCast( OSNumber, dict->getObject("TrackpadScroll") );
+  OSNumber * scrollspeed = OSDynamicCast( OSNumber, dict->getObject("HIDTrackpadScrollAcceleration") );
 
 #ifdef DEBUG
   OSCollectionIterator* iter = OSCollectionIterator::withCollection( dict );
@@ -552,6 +562,14 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
     {
       _trackpadScroll = vscroll->unsigned32BitValue() & 0x1 ? true : false;
       setProperty("TrackpadScroll", vscroll);
+    }
+
+  if (scrollspeed)
+    {
+      float tmp = (float)(scrollspeed->unsigned32BitValue());
+      tmp = (((196608.0f - tmp) / 32768.0f) + 1.0f);
+      _twofingervdivider = tmp;
+      _twofingerhdivider = tmp;
     }
 
   return super::setParamProperties(dict);
@@ -905,21 +923,20 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
     _frameCounter = (_frameType >= 4 && n == 1 ? 0 : 1); // last was 4 fingers, may have leading fingers ...
   _frameType = n;
   clock_get_uptime(&now_abs);
+  if (_frameTimer == 0)
+    _frameTimer = now_abs;
   if (n > 1)
     {
       // two, or more fingers
 
       if (n == 5)
 	{
-	  if (_fiveFingersTimer == 0)
-	    _fiveFingersTimer = now_abs;
-	  else
-	    if ((now_abs - _fiveFingersTimer) > 3000000000 && _slept == false)
-	      {
-		_device->dispatchKeyboardMessage(kPS2M_sleepComputer, &now_abs);
-		_slept = true;
+	  if ((now_abs - _frameTimer) > 3000000000 && _slept == false)
+	    {
+	      _slept = true;
+	      _device->dispatchKeyboardMessage(kPS2M_sleepComputer, &now_abs);
 		return ;
-	      }
+	    }
 	}
       if (n == 4)
 	{
@@ -983,8 +1000,8 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	  _yscrollpos = y;
 	  //buttons |= report_data.left ? 0x01 : 0;
 	  //buttons |= report_data.right ? 0x02 : 0;
-	  xdiff /= _twofingerhdivider;
-	  ydiff /= _twofingervdivider;
+	  xdiff = (int)((float)((float)xdiff / (float)_twofingerhdivider));
+	  ydiff = (int)((float)((float)ydiff / (float)_twofingervdivider));
 	  DEBUG_LOG("CYPRESS: Sending Scroll event: %d,%d\n", xdiff, ydiff);
 	  if (_trackpadHorizScroll && abs(xdiff) > abs(ydiff))
 	    dispatchScrollWheelEventX(0, -xdiff, 0, now_abs);
@@ -1009,6 +1026,8 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
       _ypos = y;
       buttons |= (report_data.left || report_data.tap) ? 0x01 : 0;
       buttons |= report_data.right ? 0x02 : 0;
+      if (_rightClicked)
+	_rightClicked--;
       _pendingButtons = buttons;
       xdiff /= _onefingerhdivider;
       ydiff /= _onefingervdivider;
