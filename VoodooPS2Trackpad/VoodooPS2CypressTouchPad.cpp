@@ -413,7 +413,7 @@ void ApplePS2CypressTouchPad::packetReady()
 	  _yscrollpos = -1;
 #ifdef DEBUG
 	  if (_frameType >= 0)
-	    DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d, _frameTimer %llu\n", _frameType, _frameCounter, _frameTimer);
+	    DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d, _frameTimer %llu, diff %llu\n", _frameType, _frameCounter, _frameTimer, now_abs - _frameTimer);
 #endif
 	  if (_clicking && _frameType == 1 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
 	    {
