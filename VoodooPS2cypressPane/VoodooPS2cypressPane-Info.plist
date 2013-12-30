@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Source Code</key>
-	<string>https://github.com/RehabMan/OS-X-Voodoo-PS2-Controller</string>
+	<string>https://code.google.com/p/voodoops2controllercypress/</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
@@ -25,11 +25,11 @@
 	<key>CFBundleVersion</key>
 	<string>1.0</string>
 	<key>NSMainNibFile</key>
-	<string>VoodooPS2synapticsPane</string>
+	<string>VoodooPS2cypressPane</string>
 	<key>NSPrefPaneIconFile</key>
-	<string>VoodooPS2synapticsPane.tiff</string>
+	<string>VoodooPS2cypressPane.tiff</string>
 	<key>NSPrefPaneIconLabel</key>
-	<string>Synaptics Trackpad</string>
+	<string>Cypress Trackpad</string>
 	<key>NSPrincipalClass</key>
 	<string>VoodooPS2Pref</string>
 </dict>

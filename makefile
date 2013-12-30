@@ -81,8 +81,8 @@ distribute:
 	/tmp/org.voodoo.rm.dsym.sh
 	rm /tmp/org.voodoo.rm.dsym.sh
 	cp ./VoodooPS2Daemon/org.rehabman.voodoo.driver.Daemon.plist ./Distribute/
-	rm -r ./Distribute/Debug/VoodooPS2synapticsPane.prefPane
-	rm -r ./Distribute/Release/VoodooPS2synapticsPane.prefPane
+	rm -r ./Distribute/Debug/VoodooPS2cypressPane.prefPane
+	rm -r ./Distribute/Release/VoodooPS2cypressPane.prefPane
 	rm ./Distribute/Debug/synapticsconfigload
 	rm ./Distribute/Release/synapticsconfigload
 	ditto -c -k --sequesterRsrc --zlibCompressionLevel 9 ./Distribute ./Archive.zip

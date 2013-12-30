@@ -1,5 +1,5 @@
 //#import "VoodooPS2Pref.h"
-#import "VoodooPS2synapticsPane.h"
+#import "VoodooPS2cypressPane.h"
 #include <CoreFoundation/CFDictionary.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOCFPlugIn.h>
@@ -112,11 +112,11 @@ int getBoolean (const char * key, io_service_t io_service)
 
 - (void) awakeFromNib
 {
-	io_service = IOServiceGetMatchingService(0, IOServiceMatching("ApplePS2SynapticsTouchPad"));
+	io_service = IOServiceGetMatchingService(0, IOServiceMatching("ApplePS2CypressTouchPad"));
 	if (!io_service)
 	{
 		NSRunCriticalAlertPanel( 
-								NSLocalizedString( @"ApplePS2SynapticsTouchPad not found", "MsgBox"), 
+								NSLocalizedString( @"ApplePS2CypressTouchPad not found", "MsgBox"), 
 								NSLocalizedString( @"Error", "MsgBoxTitle" ), nil, nil, nil );
  		return;
 	}	
@@ -198,11 +198,11 @@ int getBoolean (const char * key, io_service_t io_service)
 	}
 	
     
-      //f=fopen ([[NSHomeDirectory() stringByAppendingString:[NSString stringWithCString: "/Library/Preferences/org.voodoo.SynapticsTouchpad.plist"]] UTF8String], "wb");
-    f=fopen ([[NSHomeDirectory() stringByAppendingString:[NSString stringWithCString: "/Library/Preferences/org.voodoo.SynapticsTouchpad.plist" encoding:NSASCIIStringEncoding]] UTF8String], "wb");
+      //f=fopen ([[NSHomeDirectory() stringByAppendingString:[NSString stringWithCString: "/Library/Preferences/org.voodoo.CypressTouchpad.plist"]] UTF8String], "wb");
+    f=fopen ([[NSHomeDirectory() stringByAppendingString:[NSString stringWithCString: "/Library/Preferences/org.voodoo.CypressTouchpad.plist" encoding:NSASCIIStringEncoding]] UTF8String], "wb");
 	//NSString *fName = nil;
-	//f=fopen ([[fName  stringByAppendingString: @"/Library/Preferences/org.voodoo.SynapticsTouchpad.plist"] UTF8String], "wb");
-    //f=authopen ([[fName  stringByAppendingString: @"/Library/Preferences/org.voodoo.SynapticsTouchpad.plist"] UTF8String], "wb");
+	//f=fopen ([[fName  stringByAppendingString: @"/Library/Preferences/org.voodoo.CypressTouchpad.plist"] UTF8String], "wb");
+    //f=authopen ([[fName  stringByAppendingString: @"/Library/Preferences/org.voodoo.CypressTouchpad.plist"] UTF8String], "wb");
 	
     if (!f)
 	{
