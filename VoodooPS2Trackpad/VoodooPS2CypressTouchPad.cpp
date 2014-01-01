@@ -141,14 +141,13 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _swipeyThreshold		= 10;
     _twoFingersMaxCount		= 2;
     _threeFingersMaxCount	= 2;
-    _fourFingersMaxCount	= 2;
+    _fourFingersMaxCount	= 3;
     _onefingervdivider		= 2;
     _onefingerhdivider		= 2;
     _twofingervdivider		= 4;
     _twofingerhdivider		= 4;
     _threefingervdivider	= 2;
     _threefingerhdivider	= 2;
-    _rightClicked		= 0;
 
     _frameTimer			= 0;
     _slept			= false;
@@ -429,7 +428,6 @@ void ApplePS2CypressTouchPad::packetReady()
 	      // simulate a tap here
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x02, now_abs);
-	      _rightClicked = 3;
 	      clock_get_uptime(&now_abs);
 	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
 	      DEBUG_LOG("CYPRESS: two fingers tap detected\n");
@@ -465,7 +463,7 @@ void ApplePS2CypressTouchPad::packetReady()
 	  continue ;
 	}
       if (((((packet[0] & 0x40) != 0x40) && ((packet[0] & 0x80) != 0x80) && ((packet[0] & 0x20) != 0x20) && (packet[0] > 2)))
-	  || ((packet[0] & 0x08) == 0x08 && fingers < 0) || ((packet[0] & 0x01) == 0x01 && (packet[0] & 0x02) == 0x02)
+	  || ((packet[0] & 0x08) == 0x08 && fingers < 0) || ((packet[0] & 0x01) == 0x01 && (packet[0] & 0x02) == 0x02) || ((fingers == 0 || fingers > 2) && ((packet[0] & 0x03) == 0x03)) // trying to match de-sync with tap bit
 	  || (packet[0] == 0 && (packet[1] != 0x00 || packet[2] != 0x00 || packet[3] != 0x00 || packet[4] != 0x00 || packet[5] != 0x00 || packet[6] != 0x00 || packet[7] != 0x00) ))
 	{
 	  // incomplete packet : invalid header, de-sync'ed packets (start and ends in middle of 2 stored packets), etc ... => drop queue and ask re-send
@@ -1011,7 +1009,6 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
     }
   else
     {
-	
       // one finger
       int x = report_data.contacts[0].x;
       int y = report_data.contacts[0].y;
@@ -1026,8 +1023,6 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
       _ypos = y;
       buttons |= (report_data.left || report_data.tap) ? 0x01 : 0;
       buttons |= report_data.right ? 0x02 : 0;
-      if (_rightClicked)
-	_rightClicked--;
       _pendingButtons = buttons;
       xdiff /= _onefingerhdivider;
       ydiff /= _onefingervdivider;
@@ -1105,12 +1100,14 @@ bool		ApplePS2CypressTouchPad::setTouchpadModeByte()
   cypressQueryHardware();
   setAbsoluteMode();
   cypressSendByte(0xF6); // SetDefaults
-  //cypressSendByte(0xF3); // Set Rate
-  //cypressSendByte(200); // to 200dpi
-  //cypressSendByte(0xE8); // Set Resolution
-  //cypressSendByte(0x03); // to 8 count/mm
-  cypressSendByte(0xF4); // Set data reporting
-
+  if (_touchPadVersion <= 11)
+    {
+      cypressSendByte(0xF3); // Set Rate
+      cypressSendByte(200); // to 200dpi
+      cypressSendByte(0xE8); // Set Resolution
+      cypressSendByte(0x03); // to 8 count/mm
+      cypressSendByte(0xF4); // Set data reporting
+    }
   return (true);
 }
 

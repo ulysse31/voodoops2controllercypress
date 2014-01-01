@@ -293,7 +293,6 @@ private:
 	unsigned char			_threefingerhdivider;
 	unsigned char			_fourfingervdivider;
 	unsigned char			_fourfingerhdivider;
-	unsigned char			_rightClicked;
 	bool				_slept;
 
 

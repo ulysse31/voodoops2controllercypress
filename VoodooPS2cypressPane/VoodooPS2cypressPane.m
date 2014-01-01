@@ -216,6 +216,18 @@ int getBoolean (const char * key, io_service_t io_service)
 	return ;
 }
 
+
+- (IBAction) SlideTwoFingersTapAction: (id) sender
+{
+    int tmp = [twoFingersRightTapTime_slide intValue ];
+    [twoFingersRightTapTime_text setStringValue:[NSString stringWithFormat:@"%i", tmp]];
+//    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+//    [alert setMessageText:@"Hi there."];
+//    [alert runModal];
+}
+
+
+
 - (IBAction) SlideSpeedXAction: (id) sender
 {
 	sendNumber("DivisorX", 101-[speedSliderX doubleValue], io_service);

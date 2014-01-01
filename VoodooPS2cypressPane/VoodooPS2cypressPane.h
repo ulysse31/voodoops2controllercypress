@@ -30,12 +30,22 @@
 	IBOutlet NSButton * vmScrollButton;
 	IBOutlet NSButton * adwButton;
 	IBOutlet NSButton * msButton;
+    
+    
+    
+    IBOutlet NSTextField *twoFingersRightTapTime_text;
+    IBOutlet NSSlider *twoFingersRightTapTime_slide;
+    IBOutlet NSButton *EnabletwoFingersRightTap;
+    
 	IBOutlet NSPopUpButton * cTrigger;
 }
 
 - (void) mainViewDidLoad;
 - (void) awakeFromNib;
 - (void) didUnselect;
+
+- (IBAction) SlideTwoFingersTapAction: (id) sender;
+
 - (IBAction) SlideSpeedXAction: (id) sender;
 - (IBAction) SlideSpeedYAction: (id) sender;
 - (IBAction) TapAction: (id) sender;

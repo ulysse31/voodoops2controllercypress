@@ -7,11 +7,13 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="VoodooPS2Pref">
             <connections>
+                <outlet property="EnabletwoFingersRightTap" destination="iWg-ji-0yx" id="dKs-k8-nmP"/>
                 <outlet property="_window" destination="12" id="317"/>
                 <outlet property="maxTapTimeSlider" destination="182" id="318"/>
                 <outlet property="speedSliderX" destination="176" id="397"/>
                 <outlet property="speedSliderY" destination="390" id="398"/>
                 <outlet property="stabTapButton" destination="180" id="334"/>
+                <outlet property="twoFingersRightTapTime_text" destination="bd5-hT-ZFj" id="SW9-6C-fLH"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -55,7 +57,7 @@
                                                     <slider verticalHuggingPriority="750" id="176">
                                                         <rect key="frame" x="178" y="6" width="212" height="21"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <sliderCell key="cell" state="on" alignment="left" maxValue="100" tickMarkPosition="above" sliderType="linear" id="177">
+                                                        <sliderCell key="cell" state="on" alignment="left" maxValue="100" doubleValue="20.330906413612563" tickMarkPosition="above" sliderType="linear" id="177">
                                                             <font key="font" size="12" name="Helvetica-Bold"/>
                                                         </sliderCell>
                                                         <connections>
@@ -179,9 +181,9 @@
                                                     <slider verticalHuggingPriority="750" id="sD0-gk-cjh">
                                                         <rect key="frame" x="208" y="19" width="242" height="21"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <sliderCell key="cell" alignment="left" maxValue="800" doubleValue="358.97907239819006" tickMarkPosition="above" sliderType="linear" id="HFC-RT-Xdt"/>
+                                                        <sliderCell key="cell" state="on" alignment="left" minValue="1" maxValue="800" doubleValue="473.59855769230768" tickMarkPosition="above" sliderType="linear" id="HFC-RT-Xdt"/>
                                                         <connections>
-                                                            <action selector="takeIntValueFrom:" target="bd5-hT-ZFj" id="gCz-IE-Y0w"/>
+                                                            <action selector="SlideTwoFingersTapAction:" target="-2" id="wHl-ZZ-kFO"/>
                                                         </connections>
                                                     </slider>
                                                     <button id="iWg-ji-0yx">
