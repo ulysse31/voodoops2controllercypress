@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2002 Apple Computer, Inc. All rights reserved.
  *
@@ -20,12 +19,10 @@
  * 
  * @APPLE_LICENSE_HEADER_END@
  *
- * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
- * THIS CODE IS UNDER DEVELOPMENT, IT IS PRE-ALPHA, INCOMPLETE AND BUGGY
- *			DO NOT USE IT ON PRODUCTION
- * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
- *
- * Some basic functions as been ported from linux, but the processing 
+ * =====================================================================
+ * This file as been created/added by Ulysse31, in order to implement the
+ * Cypress PS2 Trackpad protocol/support.
+ * Some basic functions as been ported/adapted from linux, but the processing 
  * could not be done the same way ...
  * Thanks to Dudley Du from cypress for his short, but enought doc sheet
  * Ulysse31 aka Nix
@@ -132,6 +129,7 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _pendingButtons		= 0;
     _frameCounter		= 0;
     _frameType			= -1;
+    _framePressure		= 0;
     _swipey			= 0;
     _swipex			= 0;
     _swiped			= false;
@@ -148,6 +146,9 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _twofingerhdivider		= 4;
     _threefingervdivider	= 2;
     _threefingerhdivider	= 2;
+    _activeDragLock		= false;
+    _lastOneTap			= 0;
+    _oneTapCounter		= 0;
 
     _frameTimer			= 0;
     _slept			= false;
@@ -369,21 +370,133 @@ PS2InterruptResult ApplePS2CypressTouchPad::interruptOccurred(UInt8 data)
   return kPS2IR_packetBuffering;
 }
 
-void ApplePS2CypressTouchPad::packetReady()
+void	ApplePS2CypressTouchPad::cypressSimulateEvent(char button)
 {
-  //UInt8	packet[8];
+  uint64_t	now_abs;
+
+  clock_get_uptime(&now_abs);
+  dispatchRelativePointerEventX(0, 0, button, now_abs);
+  if (_activeDragLock)
+    return ;
+  clock_get_uptime(&now_abs);
+  dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
+}
+
+void	ApplePS2CypressTouchPad::cypressSimulateLastEvents()
+{
+  uint64_t	now_abs;
+
+  clock_get_uptime(&now_abs);
+#ifdef DEBUG
+  if (_frameType >= 0)
+    DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d, _frameTimer %llu, diff %llu\n", _frameType, _frameCounter, _frameTimer, now_abs - _frameTimer);
+#endif
+  if (_clicking && _frameType == 1 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
+    {
+      // simulate a tap here
+      if ((now_abs - _lastOneTap) < 250000000) // 250ms for triple tap drag locking
+	_oneTapCounter++;
+      else
+	{
+	  _oneTapCounter = 0;
+	  _activeDragLock = false;
+	}
+      if (_dragLock && _oneTapCounter >= 2)
+	_activeDragLock = true;
+      this->cypressSimulateEvent(0x01);
+      DEBUG_LOG("CYPRESS: one finger tap detected (_oneTapCounter = %d, _lastOneTap = %llu, diff = %llu)\n", _oneTapCounter, _lastOneTap, now_abs - _lastOneTap);
+      _lastOneTap = now_abs;
+    }
+  if (_frameType == 2 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
+    {
+      // simulate a tap right click here
+      this->cypressSimulateEvent(0x02);
+      DEBUG_LOG("CYPRESS: two fingers tap detected\n");
+    }
+  if (_frameType == 3 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
+    {
+      // simulate a tap here
+      this->cypressSimulateEvent(0x01);
+      DEBUG_LOG("CYPRESS: three fingers tap detected\n");
+    }
+  if (_frameType == 5 && (now_abs - _frameTimer) > 800000000 && _slept == false) // 800ms, a bit less than 1 sec
+    {
+      // Lock Screen here
+      _device->dispatchKeyboardMessage(kPS2M_screenLock, &now_abs);
+      DEBUG_LOG("CYPRESS: 5 fingers long frame detected (size=%d), locking screen\n", _frameCounter);
+    }
+}
+
+void	ApplePS2CypressTouchPad::cypressResetCounters()
+{
+  _xpos = -1;
+  _ypos = -1;
+  _x4pos = -1;
+  _y4pos = -1;
+  _xscrollpos = -1;
+  _yscrollpos = -1;
+  _swipey = 0;
+  _swipex = 0;
+  _swiped = false;
+  _slept = false;
+  _frameType = -1;
+  _frameCounter = 0;
+  _frameTimer = 0;
+  _framePressure = 0;
+}
+
+bool	ApplePS2CypressTouchPad::cypressCheckPacketEndFrame(UInt8 *packet)
+{
+  if (packet[0] == 0x00 && packet[1] == 0x00 && packet[2] == 0x00 && packet[3] == 0x00
+      && packet[4] == 0x00 && packet[5] == 0x00 && packet[6] == 0x00 && packet[7] == 0x00)
+    {
+      // Empty packet, received lots (500 bytes) when an action ends (finger leave)
+      _ringBuffer.advanceTail(kPacketLengthLarge);
+      this->cypressSimulateLastEvents();
+      this->cypressResetCounters();
+      if (_pendingButtons &&  packet[0] == 0 && packet[1] == 0 && packet[2] == 0 && packet[3] == 0
+	  && packet[4] == 0 && packet[5] == 0 && packet[6] == 0 && packet[7] == 0) // buttons were used need to clear events
+	{
+	  this->cypressProcessPacket(packet);
+	  _pendingButtons = 0;
+	}
+      return true;
+    }
+  return false;
+}
+
+
+bool		ApplePS2CypressTouchPad::cypressCheckPacketValidity(UInt8 *packet)
+{
+  UInt8	header;
   UInt8	fingers;
-    // empty the ring buffer, dispatching each packet...
-  // here need to implement cypress_protocol_handler / cypress_process_packet
-  // minimum size = 5
+
+  fingers = fingersCount(packet[0]);
+  header = packet[0];
+  if (((((header & 0x40) != 0x40) && ((header & 0x80) != 0x80) && ((header & 0x20) != 0x20) && (header > 2))) || ((header & 0xe0) == 0xe0 || (header & 0xf0) == 0xf0) // palm detect packet
+      || ((header & 0x08) == 0x08 && fingers < 0) || ((header & 0x01) == 0x01 && (header & 0x02) == 0x02) || ((fingers == 0 || fingers > 2) && ((header & 0x03) == 0x03)) // trying to match de-sync with tap bit
+      || (packet[0] == 0 && (packet[1] != 0x00 || packet[2] != 0x00 || packet[3] != 0x00 || packet[4] != 0x00 || packet[5] != 0x00 || packet[6] != 0x00 || packet[7] != 0x00) ))
+    {
+      // incomplete packet : invalid header, de-sync'ed packets (start and ends in middle of 2 stored packets), etc ... => drop queue and ask re-send
+      // Thanks to dudley at cypress for is (short but enought) doc sheet
+      this->cypressResetCounters();
+      _packetByteCount = 0;
+      _pendingButtons = 0;
+      _ringBuffer.advanceTail(_ringBuffer.count());
+      if (!((header & 0xe0) == 0xe0 || (header & 0xf0) == 0xf0)) // only ask resend if packet is not palm detect
+	cypressSendByte(0xFE);
+      return (false);
+    }
+  return (true);
+}
+
+void		ApplePS2CypressTouchPad::packetReady()
+{
   while (_ringBuffer.count() >= kPacketLengthLarge)
     {
       UInt8 *packet = _ringBuffer.tail();
       this->updatePacketSize(packet[0]);
       UInt8 size = packetSize();
-      //DEBUG_LOG("CYPRESS:  %s: packetReady BEGIN Loop: rest %d bytes in ringbuffer, size is %d\n", getName(), _ringBuffer.count(), size);
-      // this call to myMemset is only temporary debug ... should use directly the pointer to ringbuffer on prod
-      //this->myMemset(packet, 0, 8);
       if (_ringBuffer.count() < size)
 	return ;
       // should be deleted once communication with PS2 cypress trackpad stable
@@ -396,100 +509,12 @@ void ApplePS2CypressTouchPad::packetReady()
       if (packet[0] || packet[1] || packet[2] || packet[3] || packet[4] || packet[5] || packet[6] || packet[7])
 	DEBUG_LOG("CYPRESS: %s: packet dump { 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x, 0x%02x }\n", getName(), packet[0], packet[1], packet[2], packet[3], packet[4], packet[5], packet[6], packet[7]);
 #endif
-      fingers = fingersCount(packet[0]);
-      if (packet[0] == 0x00 && packet[1] == 0x00 && packet[2] == 0x00 && packet[3] == 0x00
-	  && packet[4] == 0x00 && packet[5] == 0x00 && packet[6] == 0x00 && packet[7] == 0x00)
-	{
-	  // Empty packet, received lots (500 bytes) when an action ends (finger leave)
-	  uint64_t	now_abs;
-	  clock_get_uptime(&now_abs);
-	  _ringBuffer.advanceTail(kPacketLengthLarge);
-	  _xpos = -1;
-	  _ypos = -1;
-	  _x4pos = -1;
-	  _y4pos = -1;
-	  _xscrollpos = -1;
-	  _yscrollpos = -1;
-#ifdef DEBUG
-	  if (_frameType >= 0)
-	    DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d, _frameTimer %llu, diff %llu\n", _frameType, _frameCounter, _frameTimer, now_abs - _frameTimer);
-#endif
-	  if (_clicking && _frameType == 1 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
-	    {
-	      // simulate a tap here
-	      clock_get_uptime(&now_abs);
-	      dispatchRelativePointerEventX(0, 0, 0x01, now_abs);
-	      clock_get_uptime(&now_abs);
-	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
-	      DEBUG_LOG("CYPRESS: one finger tap detected\n");
-	    }
-	  if (_frameType == 2 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
-	    {
-	      // simulate a tap here
-	      clock_get_uptime(&now_abs);
-	      dispatchRelativePointerEventX(0, 0, 0x02, now_abs);
-	      clock_get_uptime(&now_abs);
-	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
-	      DEBUG_LOG("CYPRESS: two fingers tap detected\n");
-	    }
-	  if (_frameType == 3 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
-	    {
-	      // simulate a tap here
-	      clock_get_uptime(&now_abs);
-	      dispatchRelativePointerEventX(0, 0, 0x01, now_abs);
-	      clock_get_uptime(&now_abs);
-	      dispatchRelativePointerEventX(0, 0, 0x00, now_abs);
-	      DEBUG_LOG("CYPRESS: three fingers tap detected\n");
-	    }
-	  if (_frameType == 5 && (now_abs - _frameTimer) > 800000000 && _slept == false) // 800ms, a bit less than 1 sec
-	    {
-	      // Lock Screen here
-	      _device->dispatchKeyboardMessage(kPS2M_screenLock, &now_abs);
-	      DEBUG_LOG("CYPRESS: 5 fingers long frame detected (size=%d), locking screen\n", _frameCounter);
-	    }
-	  _frameCounter = 0;
-	  _frameType = -1;
-	  _swipey = 0;
-	  _swipex = 0;
-	  _swiped = false;
-	  _frameTimer = 0;
-	  _slept = false;
-	  if (_pendingButtons &&  packet[0] == 0 && packet[1] == 0 && packet[2] == 0 && packet[3] == 0
-	      && packet[4] == 0 && packet[5] == 0 && packet[6] == 0 && packet[7] == 0) // buttons were used need to clear events
-	    {
-	      this->cypressProcessPacket(packet);
-	      _pendingButtons = 0;
-	    }
-	  continue ;
-	}
-      if (((((packet[0] & 0x40) != 0x40) && ((packet[0] & 0x80) != 0x80) && ((packet[0] & 0x20) != 0x20) && (packet[0] > 2)))
-	  || ((packet[0] & 0x08) == 0x08 && fingers < 0) || ((packet[0] & 0x01) == 0x01 && (packet[0] & 0x02) == 0x02) || ((fingers == 0 || fingers > 2) && ((packet[0] & 0x03) == 0x03)) // trying to match de-sync with tap bit
-	  || (packet[0] == 0 && (packet[1] != 0x00 || packet[2] != 0x00 || packet[3] != 0x00 || packet[4] != 0x00 || packet[5] != 0x00 || packet[6] != 0x00 || packet[7] != 0x00) ))
-	{
-	  // incomplete packet : invalid header, de-sync'ed packets (start and ends in middle of 2 stored packets), etc ... => drop queue and ask re-send
-	  // Thanks to dudley at cypress for is (short but enought) doc sheet
-	  _xpos = -1;
-	  _ypos = -1;
-	  _x4pos = -1;
-	  _y4pos = -1;
-	  _xscrollpos = -1;
-	  _yscrollpos = -1;
-	  _packetByteCount = 0;
-	  _frameCounter = 0;
-	  _frameType = -1;
-	  _swipey = 0;
-	  _swipex = 0;
-	  _swiped = false;
-	  _pendingButtons = 0;
-	  _frameTimer = 0;
-	  _slept = false;
-	  _ringBuffer.advanceTail(_ringBuffer.count());
-	  cypressSendByte(0xFE);
-	  return ;
-	}
+      if (this->cypressCheckPacketEndFrame(packet))
+	continue ;
+      if (this->cypressCheckPacketValidity(packet) == false)
+	return ;
       this->cypressProcessPacket(packet);
       _ringBuffer.advanceTail(kPacketLengthLarge);
-      //DEBUG_LOG("CYPRESS:  %s: packetReady END Loop: rest %d bytes in ringbuffer, size is %d\n", getName(), _ringBuffer.count(), size);
     }
 }
  
@@ -923,6 +948,7 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
   clock_get_uptime(&now_abs);
   if (_frameTimer == 0)
     _frameTimer = now_abs;
+  _framePressure +=  report_data.contacts[0].z;
   if (n > 1)
     {
       // two, or more fingers
@@ -1021,7 +1047,9 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
       ydiff = (n == 0 ? 0 : y - _ypos);
       _xpos = x;
       _ypos = y;
-      buttons |= (report_data.left || report_data.tap) ? 0x01 : 0;
+      if (_dragging)
+	report_data.tap = (_frameCounter > 2 && (_framePressure / _frameCounter) > 85 ? 1 : 0);
+      buttons |= (report_data.left || report_data.tap || _activeDragLock) ? 0x01 : 0;
       buttons |= report_data.right ? 0x02 : 0;
       _pendingButtons = buttons;
       xdiff /= _onefingerhdivider;

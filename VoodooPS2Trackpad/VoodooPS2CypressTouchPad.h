@@ -18,16 +18,15 @@
  * under the License.
  * 
  * @APPLE_LICENSE_HEADER_END@
- * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
- * THIS CODE IS UNDER DEVELOPMENT, IT IS PRE-ALPHA, INCOMPLETE AND BUGGY
- *                      DO NOT USE IT ON PRODUCTION
- * WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
  *
+ * =====================================================================
+ * This file as been created/added by Ulysse31, in order to implement the
+ * Cypress PS2 Trackpad protocol/support.
  * Some basic functions as been ported from linux, but the processing 
  * could not be done the same way ...
  * Thanks to Dudley Du from cypress for his short, but enought doc sheet
  * Ulysse31 aka Nix
- * ulysse31<at>gmail.com
+ * ulysse31<at>gmail<dot>com
  */
 
 #ifndef _APPLEPS2SYNAPTICSTOUCHPAD_H
@@ -274,6 +273,7 @@ private:
 	int				_pendingButtons;
 	int				_frameCounter;
 	char				_frameType;
+	UInt32				_framePressure;
 	uint64_t			_frameTimer;
 	unsigned char			_tapFrameMax;
 	unsigned char			_lockFrameMin;
@@ -294,7 +294,9 @@ private:
 	unsigned char			_fourfingervdivider;
 	unsigned char			_fourfingerhdivider;
 	bool				_slept;
-
+	uint64_t			_lastOneTap;
+	UInt8				_oneTapCounter;
+	bool				_activeDragLock;
 
 	// System properties
 	bool				_trackpadScroll;
@@ -334,6 +336,13 @@ protected:
 	bool				cypressQueryHardware();
 	bool				cypressDetect();
 	bool				cypressReconnect();
+	void				cypressResetCounters();
+	void				cypressSimulateEvent(char button);
+	void				cypressSimulateLastEvents();
+	//! @brief Checks for Finger Leaving
+	bool				cypressCheckPacketEndFrame(UInt8 *packet);
+	//! @brief Checks for Header Validity
+	bool				cypressCheckPacketValidity(UInt8 *packet);
 	void				*myMemset(void *s, int c, unsigned int n);
 
 public:
