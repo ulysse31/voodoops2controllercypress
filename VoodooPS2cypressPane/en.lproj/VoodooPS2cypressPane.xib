@@ -13,6 +13,7 @@
                 <outlet property="speedSliderX" destination="176" id="397"/>
                 <outlet property="speedSliderY" destination="390" id="398"/>
                 <outlet property="stabTapButton" destination="180" id="334"/>
+                <outlet property="twoFingersRightTapTime_slide" destination="sD0-gk-cjh" id="ti2-vc-fOg"/>
                 <outlet property="twoFingersRightTapTime_text" destination="bd5-hT-ZFj" id="SW9-6C-fLH"/>
             </connections>
         </customObject>
@@ -57,7 +58,7 @@
                                                     <slider verticalHuggingPriority="750" id="176">
                                                         <rect key="frame" x="178" y="6" width="212" height="21"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <sliderCell key="cell" state="on" alignment="left" maxValue="100" doubleValue="20.330906413612563" tickMarkPosition="above" sliderType="linear" id="177">
+                                                        <sliderCell key="cell" state="on" alignment="left" maxValue="100" doubleValue="42.199770942408378" tickMarkPosition="above" sliderType="linear" id="177">
                                                             <font key="font" size="12" name="Helvetica-Bold"/>
                                                         </sliderCell>
                                                         <connections>
@@ -181,7 +182,7 @@
                                                     <slider verticalHuggingPriority="750" id="sD0-gk-cjh">
                                                         <rect key="frame" x="208" y="19" width="242" height="21"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <sliderCell key="cell" state="on" alignment="left" minValue="1" maxValue="800" doubleValue="473.59855769230768" tickMarkPosition="above" sliderType="linear" id="HFC-RT-Xdt"/>
+                                                        <sliderCell key="cell" alignment="left" minValue="1" maxValue="800" doubleValue="328.06520432692304" tickMarkPosition="above" sliderType="linear" id="HFC-RT-Xdt"/>
                                                         <connections>
                                                             <action selector="SlideTwoFingersTapAction:" target="-2" id="wHl-ZZ-kFO"/>
                                                         </connections>

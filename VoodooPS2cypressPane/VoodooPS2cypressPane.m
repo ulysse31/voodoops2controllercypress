@@ -220,7 +220,8 @@ int getBoolean (const char * key, io_service_t io_service)
 - (IBAction) SlideTwoFingersTapAction: (id) sender
 {
     int tmp = [twoFingersRightTapTime_slide intValue ];
-    [twoFingersRightTapTime_text setStringValue:[NSString stringWithFormat:@"%i", tmp]];
+    twoFingersRightTapTime_text.stringValue = [NSString stringWithFormat:@"%d", tmp];
+    sendNumber("2FingersMaxTapTime", tmp, io_service);
 //    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
 //    [alert setMessageText:@"Hi there."];
 //    [alert runModal];

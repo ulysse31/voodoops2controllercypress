@@ -142,10 +142,16 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _fourFingersMaxCount	= 3;
     _onefingervdivider		= 2;
     _onefingerhdivider		= 2;
-    _twofingervdivider		= 4;
-    _twofingerhdivider		= 4;
+    _twofingervdivider		= 2;
+    _twofingerhdivider		= 2;
     _threefingervdivider	= 2;
     _threefingerhdivider	= 2;
+//     _onefingervdivider		= 1;
+//     _onefingerhdivider		= 1;
+//     _twofingervdivider		= 1;
+//     _twofingerhdivider		= 1;
+//     _threefingervdivider	= 1;
+//     _threefingerhdivider	= 1;
     _activeDragLock		= false;
     _lastOneTap			= 0;
     _oneTapCounter		= 0;
@@ -1052,8 +1058,8 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
       buttons |= (report_data.left || report_data.tap || _activeDragLock) ? 0x01 : 0;
       buttons |= report_data.right ? 0x02 : 0;
       _pendingButtons = buttons;
-      xdiff /= _onefingerhdivider;
-      ydiff /= _onefingervdivider;
+      xdiff = (int)((float)(((float)(xdiff)) / ((float)(_onefingerhdivider))));
+      ydiff = (int)((float)(((float)(ydiff)) / ((float)(_onefingervdivider))));
       DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
       dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
     }
