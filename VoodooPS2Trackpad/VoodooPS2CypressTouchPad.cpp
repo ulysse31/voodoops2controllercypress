@@ -1140,8 +1140,8 @@ bool		ApplePS2CypressTouchPad::setTouchpadModeByte()
       cypressSendByte(200); // to 200dpi
       cypressSendByte(0xE8); // Set Resolution
       cypressSendByte(0x03); // to 8 count/mm
-      cypressSendByte(0xF4); // Set data reporting
     }
+  cypressSendByte(0xF4); // Set data reporting
   return (true);
 }
 
