@@ -146,6 +146,14 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _twofingerhdivider		= 2;
     _threefingervdivider	= 2;
     _threefingerhdivider	= 2;
+    _onefingermaxtaptime	= 200000000;
+    _twofingermaxtaptime	= 200000000;
+    _threefingermaxtaptime	= 200000000;
+    _fourfingermaxtaptime	= 200000000;
+    _fivefingermaxtaptime	= 200000000;
+    _fivefingerscreenlocktime	= 800000000;
+    _fivefingersleeptime	= 3000000000;
+    _dragPressureAverage	= 85;
 //     _onefingervdivider		= 1;
 //     _onefingerhdivider		= 1;
 //     _twofingervdivider		= 1;
@@ -171,6 +179,15 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _cytp_rate[5] = 200;
 
     _wakeDelay = 350;
+
+    // Default Props
+    _clicking				= true;
+    _twoFingerRightClick		= true;
+    _threeFingerDrag			= true;
+    _fourFingerHorizSwipeGesture	= true;
+    _fourFingerVertSwipeGesture		= true;
+    _fiveFingerScreenLock		= true;
+    _fiveFingerSleep			= true;
     
     _packetLength = 8; // default len
     _tpMode = 0;
@@ -183,6 +200,7 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _tpResX = _tpMaxAbsY / _tpWidth;
     _tpResY = _tpMaxAbsY / _tpHigh;
 
+    this->setParamProperties(config);
     OSSafeRelease(config);
 
     return true;
@@ -255,24 +273,31 @@ bool ApplePS2CypressTouchPad::start( IOService * provider )
     //
 
 
-    enabledProperty = 1; 
+    enabledProperty = 1;
     disabledProperty = 0; 
 
-    setProperty("Clicking", enabledProperty, 
-        sizeof(enabledProperty) * 8);
-    setProperty("DragLock", disabledProperty, 
-        sizeof(disabledProperty) * 8);
-    setProperty("Dragging", disabledProperty, 
-        sizeof(disabledProperty) * 8);
-    setProperty("TrackpadScroll", enabledProperty, 
-        sizeof(enabledProperty) * 8);
-    setProperty("TrackpadHorizScroll", enabledProperty, 
-        sizeof(enabledProperty) * 8);
+//     setProperty("Clicking", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
+//     setProperty("DragLock", disabledProperty, 
+//         sizeof(disabledProperty) * 8);
+//     setProperty("Dragging", disabledProperty, 
+//        sizeof(disabledProperty) * 8);
+//     setProperty("TrackpadScroll", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
+//     setProperty("TrackpadHorizScroll", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
 
-    setProperty("TrackpadFourFingerHorizSwipeGesture", enabledProperty, 
-        sizeof(enabledProperty) * 8);
-    setProperty("TrackpadThreeFingerDrag", enabledProperty, 
-        sizeof(enabledProperty) * 8);
+//     setProperty("CypressFourFingerHorizSwipeGesture", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
+//     setProperty("CypressFourFingerVertSwipeGesture", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
+//     setProperty("CypressThreeFingerDrag", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
+//        float	i = 200;
+//     setProperty("1FingersMaxTapTime", i, sizeof(i) * 8);
+//     setProperty("2FingersMaxTapTime", i, sizeof(i) * 8);
+//     setProperty("3FingersMaxTapTime", i, sizeof(i) * 8);
+
     //
     // Must add this property to let our superclass know that it should handle
     // trackpad acceleration settings from user space.  Without this, tracking
@@ -397,7 +422,7 @@ void	ApplePS2CypressTouchPad::cypressSimulateLastEvents()
   if (_frameType >= 0)
     DEBUG_LOG("CYPRESS: _frameType = %d, _frameCounter = %d, _frameTimer %llu, diff %llu\n", _frameType, _frameCounter, _frameTimer, now_abs - _frameTimer);
 #endif
-  if (_clicking && _frameType == 1 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
+  if (_clicking && _frameType == 1 && _frameCounter > 0 && ((now_abs - _frameTimer) < _onefingermaxtaptime)) // 200 ms, all value less than that should be considered as a tap
     {
       // simulate a tap here
       if ((now_abs - _lastOneTap) < 250000000) // 250ms for triple tap drag locking
@@ -413,19 +438,27 @@ void	ApplePS2CypressTouchPad::cypressSimulateLastEvents()
       DEBUG_LOG("CYPRESS: one finger tap detected (_oneTapCounter = %d, _lastOneTap = %llu, diff = %llu)\n", _oneTapCounter, _lastOneTap, now_abs - _lastOneTap);
       _lastOneTap = now_abs;
     }
-  if (_frameType == 2 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
+  if (_twoFingerRightClick && _frameType == 2 && _frameCounter > 0 && ((now_abs - _frameTimer) < _twofingermaxtaptime)) // 200 ms, all value less than that should be considered as a tap
     {
       // simulate a tap right click here
       this->cypressSimulateEvent(0x02);
       DEBUG_LOG("CYPRESS: two fingers tap detected\n");
     }
-  if (_frameType == 3 && _frameCounter > 0 && ((now_abs - _frameTimer) < 200000000)) // 200 ms, all value less than that should be considered as a tap
+  if (_frameType == 3 && _frameCounter > 0 && ((now_abs - _frameTimer) < _threefingermaxtaptime)) // 200 ms, all value less than that should be considered as a tap
     {
       // simulate a tap here
       this->cypressSimulateEvent(0x01);
       DEBUG_LOG("CYPRESS: three fingers tap detected\n");
     }
-  if (_frameType == 5 && (now_abs - _frameTimer) > 800000000 && _slept == false) // 800ms, a bit less than 1 sec
+  // Finally thinking that it may not be a good idea to implement a third action on 5 fingers ... may be confusing use between screenlock and show desktop ...
+  // More generally, adding more than 2 time based actions on the same finger count may be a bad idea ... so commenting out this code
+//   if (_fiveFingerShowDesktop && _frameType == 5 && (now_abs - _frameTimer) < _fivefingermaxtaptime) // 100ms
+//     {
+//       // Show Desktop here
+//       _device->dispatchKeyboardMessage(kPS2M_showDesktop, &now_abs);
+//       DEBUG_LOG("CYPRESS: 5 fingers short frame (tap) detected (size=%d), Showing Desktop\n", _frameCounter);
+//     }
+  if (_fiveFingerScreenLock && _frameType == 5 && (now_abs - _frameTimer) > _fivefingerscreenlocktime && _slept == false) // 800ms, a bit less than 1 sec
     {
       // Lock Screen here
       _device->dispatchKeyboardMessage(kPS2M_screenLock, &now_abs);
@@ -542,12 +575,30 @@ void		ApplePS2CypressTouchPad::setTouchPadEnable( bool enable )
 
 IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
 {
+  if (dict == 0)
+    return super::setParamProperties(dict);
+
   OSNumber * clicking = OSDynamicCast( OSNumber, dict->getObject("Clicking") );
   OSNumber * dragging = OSDynamicCast( OSNumber, dict->getObject("Dragging") );
   OSNumber * draglock = OSDynamicCast( OSNumber, dict->getObject("DragLock") );
   OSNumber * hscroll  = OSDynamicCast( OSNumber, dict->getObject("TrackpadHorizScroll") );
   OSNumber * vscroll  = OSDynamicCast( OSNumber, dict->getObject("TrackpadScroll") );
   OSNumber * scrollspeed = OSDynamicCast( OSNumber, dict->getObject("HIDTrackpadScrollAcceleration") );
+
+  OSNumber * onefingermaxtaptime = OSDynamicCast( OSNumber, dict->getObject("Cypress1FingerMaxTapTime") );
+  OSNumber * twofingermaxtaptime = OSDynamicCast( OSNumber, dict->getObject("Cypress2FingerMaxTapTime") );
+  OSNumber * threefingermaxtaptime = OSDynamicCast( OSNumber, dict->getObject("Cypress3FingerMaxTapTime") );
+  OSNumber * fourfingermaxtaptime = OSDynamicCast( OSNumber, dict->getObject("Cypress4FingerMaxTapTime") );
+  OSNumber * fivefingermaxtaptime = OSDynamicCast( OSNumber, dict->getObject("Cypress5FingerMaxTapTime") );
+  OSNumber * fourFingerHorizSwipeGesture = OSDynamicCast( OSNumber, dict->getObject("CypressFourFingerHorizSwipeGesture") );
+  OSNumber * fourFingerVertSwipeGesture = OSDynamicCast( OSNumber, dict->getObject("CypressFourFingerVertSwipeGesture") );
+  OSNumber * twoFingerRightClick = OSDynamicCast( OSNumber, dict->getObject("CypressTwoFingerRightClick") );
+  OSNumber * threeFingerDrag = OSDynamicCast( OSNumber, dict->getObject("CypressThreeFingerDrag"));
+  OSNumber * dragPressureAverage = OSDynamicCast( OSNumber, dict->getObject("CypressDragPressureAverage"));
+  OSNumber * fiveFingerSleep = OSDynamicCast( OSNumber, dict->getObject("CypressFiveFingerSleep"));
+  OSNumber * fiveFingerScreenLock = OSDynamicCast( OSNumber, dict->getObject("CypressFiveFingerScreenLock"));
+  OSNumber * fiveFingerSleepTimer = OSDynamicCast( OSNumber, dict->getObject("Cypress5FingerSleepTimer"));
+  OSNumber * fiveFingerScreenLockTimer = OSDynamicCast( OSNumber, dict->getObject("Cypress5FingerScreenLockTimer"));
 
 #ifdef DEBUG
   OSCollectionIterator* iter = OSCollectionIterator::withCollection( dict );
@@ -569,14 +620,13 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
   if (clicking)
     {
       _clicking = clicking->unsigned32BitValue() & 0x1 ? true : false;
-      setProperty("Clicking", dragging);
+      setProperty("Clicking", clicking);
     }
   if (dragging)
     {
       _dragging = dragging->unsigned32BitValue() & 0x1 ? true : false;
       setProperty("Dragging", dragging);
     }
-
   if (draglock)
     {
       _dragLock = draglock->unsigned32BitValue() & 0x1 ? true : false;
@@ -599,8 +649,78 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
       tmp = (((196608.0f - tmp) / 32768.0f) + 1.0f);
       _twofingervdivider = tmp;
       _twofingerhdivider = tmp;
+      setProperty("HIDTrackpadScrollAcceleration", scrollspeed);
     }
-
+  if (dragPressureAverage)
+    {
+      _dragPressureAverage = dragPressureAverage->unsigned32BitValue();
+      setProperty("CypressDragPressureAverage", dragPressureAverage);
+    }
+  if (onefingermaxtaptime)
+    {
+      _onefingermaxtaptime = ((onefingermaxtaptime->unsigned32BitValue()) * 1000000);
+      setProperty("Cypress1FingerMaxTapTime", onefingermaxtaptime);
+    }
+  if (twofingermaxtaptime)
+    {
+      _twofingermaxtaptime = ((twofingermaxtaptime->unsigned32BitValue()) * 1000000);
+      setProperty("Cypress2FingerMaxTapTime", twofingermaxtaptime);
+    }
+  if (threefingermaxtaptime)
+    {
+      _threefingermaxtaptime = ((threefingermaxtaptime->unsigned32BitValue()) * 1000000);
+      setProperty("Cypress3FingerMaxTapTime", threefingermaxtaptime);
+    }
+  if (fourfingermaxtaptime)
+    {
+      _fourfingermaxtaptime = ((fourfingermaxtaptime->unsigned32BitValue()) * 1000000);
+      setProperty("Cypress4FingerMaxTapTime", fourfingermaxtaptime);
+    }
+  if (fivefingermaxtaptime)
+    {
+      _fivefingermaxtaptime = ((fivefingermaxtaptime->unsigned32BitValue()) * 1000000);
+      setProperty("Cypress3FingerMaxTapTime", fivefingermaxtaptime);
+    }
+  if (fourFingerHorizSwipeGesture)
+    {
+      _fourFingerHorizSwipeGesture = fourFingerHorizSwipeGesture->unsigned32BitValue() != 0 ? true : false;
+      setProperty("CypressFourFingerHorizSwipeGesture", fourFingerHorizSwipeGesture);
+    }
+  if (fourFingerVertSwipeGesture)
+    {
+      _fourFingerVertSwipeGesture = fourFingerVertSwipeGesture->unsigned32BitValue() != 0 ? true : false;
+      setProperty("CypressFourFingerVertSwipeGesture", fourFingerVertSwipeGesture);
+    }
+  if (threeFingerDrag)
+    {
+      _threeFingerDrag = threeFingerDrag->unsigned32BitValue() != 0 ? true : false;
+      setProperty("CypressThreeFingerDrag", threeFingerDrag);
+    }
+  if (twoFingerRightClick)
+    {
+      _twoFingerRightClick = twoFingerRightClick->unsigned32BitValue() != 0 ? true : false;
+      setProperty("CypressTwoFingerRightClick", twoFingerRightClick);
+    }
+  if (fiveFingerScreenLock)
+    {
+      _fiveFingerScreenLock = fiveFingerScreenLock->unsigned32BitValue() != 0 ? true : false;
+      setProperty("CypressFiveFingerScreenLock", fiveFingerScreenLock);
+    }
+  if (fiveFingerSleep)
+    {
+      _fiveFingerSleep = fiveFingerSleep->unsigned32BitValue() != 0 ? true : false;
+      setProperty("CypressFiveFingerSleep", fiveFingerSleep);
+    }
+  if (fiveFingerSleepTimer)
+    {
+      _fivefingersleeptime = ((fiveFingerSleepTimer->unsigned32BitValue()) * 1000000);
+      setProperty("Cypress5FingerSleepTimer", fiveFingerSleepTimer);
+    }
+  if (fiveFingerScreenLockTimer)
+    {
+      _fivefingersleeptime = ((fiveFingerScreenLockTimer->unsigned32BitValue()) * 1000000);
+      setProperty("Cypress5FingerScreenLockTimer", fiveFingerScreenLockTimer);
+    }
   return super::setParamProperties(dict);
 }
 
@@ -961,7 +1081,7 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 
       if (n == 5)
 	{
-	  if ((now_abs - _frameTimer) > 3000000000 && _slept == false)
+	  if (_fiveFingerSleep && (now_abs - _frameTimer) > _fivefingersleeptime && _slept == false)
 	    {
 	      _slept = true;
 	      _device->dispatchKeyboardMessage(kPS2M_sleepComputer, &now_abs);
@@ -981,20 +1101,23 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	  ydiff = y - _y4pos;
 	  _swipey += ydiff;
 	  _swipex += xdiff;
-	  if (_frameCounter >= _fourFingersMaxCount && _swiped == false
+
+	  /// EDIT HERE !!
+	  if (((now_abs - _frameTimer) > _fourfingermaxtaptime) && _swiped == false
 	      && (abs(_swipex) > _swipexThreshold ||  abs(_swipey) > _swipeyThreshold))
 	    {
 	      DEBUG_LOG("CYPRESS: 4 Finger swipe : _swipex=%d _swipey=%d\n", _swipex, _swipey);
-	      if (abs(_swipex) < abs((_swipey * 3) / 2)) // need to keep ratio between x and y => y is less surface in size
+	      if (abs(_swipex) < abs((_swipey * 3) / 2) && _fourFingerVertSwipeGesture) // need to keep ratio between x and y => y is less surface in size
 		_device->dispatchKeyboardMessage((_swipey < 0 ? kPS2M_swipeUp : kPS2M_swipeDown), &now_abs);
 	      else
-		_device->dispatchKeyboardMessage((_swipex < 0 ? kPS2M_swipeRight : kPS2M_swipeLeft), &now_abs);
+		if (_fourFingerHorizSwipeGesture)
+		  _device->dispatchKeyboardMessage((_swipex < 0 ? kPS2M_swipeRight : kPS2M_swipeLeft), &now_abs);
 	      _swiped = true;
 	      _swipey = 0;
 	      _swipex = 0;
 	    }
 	}
-      if (n == 3 && _frameCounter >= _threeFingersMaxCount)
+      if (_threeFingerDrag && n == 3 && ((now_abs - _frameTimer) > _threefingermaxtaptime))
 	{
 	  int x = report_data.contacts[0].x;
 	  int y = report_data.contacts[0].y;
@@ -1014,7 +1137,7 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	  DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
 	  dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
 	}
-      if (_trackpadScroll && n == 2 && _frameCounter >= _twoFingersMaxCount)
+      if (_trackpadScroll && n == 2 && _frameCounter >= _twoFingersMaxCount) // cannot link with tap timer => create a delay on scrolling, which is a wrong/unwanted behaviour
 	{
 	  // two fingers
 	  int x = report_data.contacts[0].x;
@@ -1054,7 +1177,7 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
       _xpos = x;
       _ypos = y;
       if (_dragging)
-	report_data.tap = (_frameCounter > 2 && (_framePressure / _frameCounter) > 85 ? 1 : 0);
+	report_data.tap = (_frameCounter > 2 && (_framePressure / _frameCounter) > _dragPressureAverage ? 1 : 0);
       buttons |= (report_data.left || report_data.tap || _activeDragLock) ? 0x01 : 0;
       buttons |= report_data.right ? 0x02 : 0;
       _pendingButtons = buttons;

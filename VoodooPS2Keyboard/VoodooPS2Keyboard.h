@@ -106,6 +106,7 @@ private:
     UInt16                      _actionSwipeRight[16];
     UInt16                      _actionScreenLock[16];
     UInt16                      _actionSleepComputer[16];
+    UInt16                      _actionShowDesktop[16];
 
     // ACPI support for screen brightness
     IOACPIPlatformDevice *      _provider;

@@ -287,8 +287,6 @@ private:
 	unsigned char			_fourFingersMaxCount;
 	unsigned char			_onefingervdivider;
 	unsigned char			_onefingerhdivider;
-	float				_twofingervdivider;
-	float				_twofingerhdivider;
 	unsigned char			_threefingervdivider;
 	unsigned char			_threefingerhdivider;
 	unsigned char			_fourfingervdivider;
@@ -304,6 +302,24 @@ private:
 	bool				_dragging;
 	bool				_trackpadHorizScroll;
 	bool				_clicking;
+	bool				_twoFingerRightClick;
+	bool				_threeFingerDrag;
+	bool				_fourFingerHorizSwipeGesture;
+	bool				_fourFingerVertSwipeGesture;
+	bool				_fiveFingerScreenLock;
+	bool				_fiveFingerSleep;
+	bool				_fiveFingerShowDesktop;
+
+	float				_twofingervdivider;
+	float				_twofingerhdivider;
+	double				_onefingermaxtaptime;
+	double				_twofingermaxtaptime;
+	double				_threefingermaxtaptime;
+	double				_fourfingermaxtaptime;
+	double				_fivefingermaxtaptime;
+	double				_fivefingerscreenlocktime;
+	double				_fivefingersleeptime;
+	int				_dragPressureAverage;
 
 protected:
 	virtual void			setTouchPadEnable( bool enable );

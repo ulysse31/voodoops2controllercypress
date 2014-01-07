@@ -120,7 +120,11 @@ int getBoolean (const char * key, io_service_t io_service)
 								NSLocalizedString( @"Error", "MsgBoxTitle" ), nil, nil, nil );
  		return;
 	}	
-	dict=CFDictionaryCreateMutable(NULL,0, &kCFTypeDictionaryKeyCallBacks ,NULL);	
+	dict=CFDictionaryCreateMutable(NULL,0, &kCFTypeDictionaryKeyCallBacks ,NULL);
+	
+    [ twoFingersRightTapTime_slide setDoubleValue:getNumber("2FingersMaxTapTime", io_service) ];
+    [ twoFingersRightTapTime_text setStringValue:[NSString stringWithFormat:@"%d", getNumber("2FingersMaxTapTime", io_service)] ];
+
 	[speedSliderX setDoubleValue:101-getNumber("DivisorX", io_service)];
     [speedSliderY setDoubleValue:101-getNumber("DivisorY", io_service)];
 	[maxTapTimeSlider setDoubleValue:getLongNumber("MaxTapTime", io_service)!=0?

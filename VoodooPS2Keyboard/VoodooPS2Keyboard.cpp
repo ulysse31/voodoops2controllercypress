@@ -56,6 +56,7 @@
 #define kActionSwipeRight                   "ActionSwipeRight"
 #define kActionScreenLock                   "ActionScreenLock"
 #define kActionSleepComputer                "ActionSleepComputer"
+#define kActionShowDesktop                  "ActionShowDesktop"
 
 // Constants for other services to communicate with
 
@@ -247,6 +248,7 @@ bool ApplePS2Keyboard::init(OSDictionary * dict)
     parseAction("3b d, 37 d, 7c d, 7c u, 37 u, 3b u", _actionSwipeRight, countof(_actionSwipeRight));
     parseAction("3b d, 38 d, 92 d, 92 u, 38 u, 3b u", _actionScreenLock, countof(_actionScreenLock));
     parseAction("37 d, 3a d, 92 d, 92 u, 3a u, 37 u", _actionSleepComputer, countof(_actionSleepComputer));
+    parseAction("67 d, 67 u", _actionShowDesktop, countof(_actionShowDesktop));
 
     //
     // Load settings specfic to the Platform Profile...
@@ -847,6 +849,12 @@ void ApplePS2Keyboard::setParamPropertiesGated(OSDictionary * dict)
     {
         parseAction(str->getCStringNoCopy(), _actionSleepComputer, countof(_actionSleepComputer));
         setProperty(kActionSleepComputer, str);
+    }
+    str = OSDynamicCast(OSString, dict->getObject(kActionShowDesktop));
+    if (str)
+    {
+        parseAction(str->getCStringNoCopy(), _actionShowDesktop, countof(_actionShowDesktop));
+        setProperty(kActionShowDesktop, str);
     }
 
 }
@@ -1550,6 +1558,10 @@ void ApplePS2Keyboard::receiveMessage(int message, void* data)
         case kPS2M_sleepComputer:
 			DEBUG_LOG("ApplePS2Keyboard: Synaptic Trackpad call Sleep Computer\n");
             sendKeySequence(_actionSleepComputer);
+            break;
+        case kPS2M_showDesktop:
+			DEBUG_LOG("ApplePS2Keyboard: Synaptic Trackpad call Show Desktop\n");
+            sendKeySequence(_actionShowDesktop);
             break;
 
     }

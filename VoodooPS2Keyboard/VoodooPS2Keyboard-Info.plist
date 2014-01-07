@@ -76,6 +76,8 @@
 					<string>3b d, 38 d, 92 d, 92 u, 38 u, 3b u</string>
 					<key>ActionSleepComputer</key>
 					<string>37 d, 3a d, 92 d, 92 u, 3a u, 37 u</string>
+					<key>ActionShowDesktop</key>
+					<string>67 d, 67 u</string>
 					<key>LogScanCodes</key>
 					<false/>
 					<key>HIDF12EjectDelay</key>
