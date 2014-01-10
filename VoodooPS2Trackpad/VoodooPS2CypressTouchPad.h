@@ -224,6 +224,35 @@ class		cypressFrame
   int		_maxElems;
 };
 
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// kalFilter: kalman filtering for mouse coordinates (three fingers smoothing)
+//
+
+#define KFCURRENT       0
+#define KFLAST          1
+#define KFCEIL(X) ( (X - (int)X)==0 ? (int)X : (int)X + 1 )
+#define KF_INIT_NOISE_LEVEL	20
+class           kalFilter
+{
+ public:
+  kalFilter(int noiseLevel = KF_INIT_NOISE_LEVEL);
+  int           getNewValue(int rawval);
+  int		getActualIteration() { return (_it); }
+  void          resetFilter();
+  int		noiseLevel(int noiseLevel = 0);
+
+ private:
+  float         _xk[2];
+  float         _pk[2];
+  float         _k;
+  float         _zk;
+  float         _r;
+  int           _it;
+};
+
+
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // ApplePS2CypressTouchPad Class Declaration
 //
@@ -287,8 +316,8 @@ private:
 	unsigned char			_fourFingersMaxCount;
 	unsigned char			_onefingervdivider;
 	unsigned char			_onefingerhdivider;
-	unsigned char			_threefingervdivider;
-	unsigned char			_threefingerhdivider;
+	float				_threefingervdivider;
+	float				_threefingerhdivider;
 	unsigned char			_fourfingervdivider;
 	unsigned char			_fourfingerhdivider;
 	bool				_slept;
@@ -309,6 +338,10 @@ private:
 	bool				_fiveFingerScreenLock;
 	bool				_fiveFingerSleep;
 	bool				_fiveFingerShowDesktop;
+	unsigned int			_pressureFiltering;
+	unsigned int			_twoFingerFiltering;
+	unsigned int			_threeFingerFiltering;
+	unsigned int			_fourFingerFiltering;
 
 	float				_twofingervdivider;
 	float				_twofingerhdivider;
@@ -320,6 +353,9 @@ private:
 	double				_fivefingerscreenlocktime;
 	double				_fivefingersleeptime;
 	int				_dragPressureAverage;
+	kalFilter			_kalX;
+	kalFilter			_kalY;
+	kalFilter			_kalZ;
 
 protected:
 	virtual void			setTouchPadEnable( bool enable );

@@ -44,6 +44,75 @@ enum {
 };
 
 // =============================================================================
+// kalFilter: kalman filtering for mouse coordinates (three fingers smoothing)
+//
+
+kalFilter::kalFilter(int noiseLevel)
+{
+  _it = 0;
+  _xk[KFLAST] = 0;
+  _xk[KFCURRENT] = 0;
+  _pk[KFLAST] = 0;
+  _pk[KFCURRENT] = 0;
+  _k = 0;
+  _zk = 0;
+  _r = noiseLevel;
+  _r /= 1000.0f;
+}
+
+int
+kalFilter::getNewValue(int rawval)
+{
+  int   result;
+
+
+  if (_it == 0)
+    {
+      _xk[KFLAST] = 0;
+      _pk[KFLAST] = 1;
+    }
+  // TIME UPDATE
+  _xk[KFCURRENT] = _xk[KFLAST];
+  _pk[KFCURRENT] = _pk[KFLAST];
+  _zk = rawval;
+  _zk /= 1000.0f; // ratio to 0.001
+  // MEASUREMENT UPDATE
+  _k = (float)((float)_pk[KFLAST] / (float)(_pk[KFLAST] + _r));
+  _xk[KFCURRENT] = _xk[KFLAST] + (_k * (_zk - _xk[KFLAST]));
+  _pk[KFCURRENT] = _pk[KFLAST]*(1 - _k);
+  // PREPARE NEXT ROUND
+  result = (int)KFCEIL((float)(_xk[KFCURRENT] * 1000.0f));
+  _xk[KFLAST] = _xk[KFCURRENT];
+  _pk[KFLAST] = _pk[KFCURRENT];
+  _it++;
+  return (result);
+}
+
+void
+kalFilter::resetFilter()
+{
+  _it = 0;
+  _xk[KFLAST] = 0;
+  _xk[KFCURRENT] = 0;
+  _pk[KFLAST] = 0;
+  _pk[KFCURRENT] = 0;
+  _k = 0;
+  _zk = 0;
+}
+
+int
+kalFilter::noiseLevel(int noiseLevel)
+{
+  if (noiseLevel)
+    {
+      _r = noiseLevel;
+      _r = (float)( _r / 1000.0f);
+      DEBUG_LOG("CYPRESS: kalFilter: set noise level to %lu\n", (unsigned long)(_r * 1000.0f));
+    }
+  return ((int)(_r * 1000.0f));
+}
+
+// =============================================================================
 // cypressFrame: coord analysis Class implementation
 //
 
@@ -144,12 +213,12 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _onefingerhdivider		= 2;
     _twofingervdivider		= 2;
     _twofingerhdivider		= 2;
-    _threefingervdivider	= 2;
-    _threefingerhdivider	= 2;
+    _threefingervdivider	= 1;
+    _threefingerhdivider	= 1;
     _onefingermaxtaptime	= 200000000;
     _twofingermaxtaptime	= 200000000;
     _threefingermaxtaptime	= 200000000;
-    _fourfingermaxtaptime	= 200000000;
+    _fourfingermaxtaptime	= 50000000;
     _fivefingermaxtaptime	= 200000000;
     _fivefingerscreenlocktime	= 800000000;
     _fivefingersleeptime	= 3000000000;
@@ -188,7 +257,11 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _fourFingerVertSwipeGesture		= true;
     _fiveFingerScreenLock		= true;
     _fiveFingerSleep			= true;
-    
+    _pressureFiltering			= 20;
+    _twoFingerFiltering			= 1;
+    _threeFingerFiltering		= 50;
+    _fourFingerFiltering		= 20;
+
     _packetLength = 8; // default len
     _tpMode = 0;
     _tpWidth = CYTP_DEFAULT_WIDTH;
@@ -276,16 +349,16 @@ bool ApplePS2CypressTouchPad::start( IOService * provider )
     enabledProperty = 1;
     disabledProperty = 0; 
 
-//     setProperty("Clicking", enabledProperty, 
-//        sizeof(enabledProperty) * 8);
-//     setProperty("DragLock", disabledProperty, 
-//         sizeof(disabledProperty) * 8);
-//     setProperty("Dragging", disabledProperty, 
-//        sizeof(disabledProperty) * 8);
-//     setProperty("TrackpadScroll", enabledProperty, 
-//        sizeof(enabledProperty) * 8);
-//     setProperty("TrackpadHorizScroll", enabledProperty, 
-//        sizeof(enabledProperty) * 8);
+    setProperty("Clicking", enabledProperty, 
+       sizeof(enabledProperty) * 8);
+    setProperty("DragLock", disabledProperty, 
+        sizeof(disabledProperty) * 8);
+    setProperty("Dragging", disabledProperty, 
+       sizeof(disabledProperty) * 8);
+    setProperty("TrackpadScroll", enabledProperty, 
+       sizeof(enabledProperty) * 8);
+    setProperty("TrackpadHorizScroll", enabledProperty, 
+       sizeof(enabledProperty) * 8);
 
 //     setProperty("CypressFourFingerHorizSwipeGesture", enabledProperty, 
 //        sizeof(enabledProperty) * 8);
@@ -305,6 +378,7 @@ bool ApplePS2CypressTouchPad::start( IOService * provider )
     //
 
     setProperty(kIOHIDPointerAccelerationTypeKey, kIOHIDTrackpadAccelerationType);
+    setProperty(kIOHIDScrollAccelerationTypeKey, kIOHIDTrackpadScrollAccelerationKey);
 
     //
     // Lock the controller during initialization
@@ -444,6 +518,12 @@ void	ApplePS2CypressTouchPad::cypressSimulateLastEvents()
       this->cypressSimulateEvent(0x02);
       DEBUG_LOG("CYPRESS: two fingers tap detected\n");
     }
+  if (_frameType > 1)
+    {
+      _kalX.resetFilter();
+      _kalY.resetFilter();
+    }
+  _kalZ.resetFilter();
   if (_frameType == 3 && _frameCounter > 0 && ((now_abs - _frameTimer) < _threefingermaxtaptime)) // 200 ms, all value less than that should be considered as a tap
     {
       // simulate a tap here
@@ -599,6 +679,10 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
   OSNumber * fiveFingerScreenLock = OSDynamicCast( OSNumber, dict->getObject("CypressFiveFingerScreenLock"));
   OSNumber * fiveFingerSleepTimer = OSDynamicCast( OSNumber, dict->getObject("Cypress5FingerSleepTimer"));
   OSNumber * fiveFingerScreenLockTimer = OSDynamicCast( OSNumber, dict->getObject("Cypress5FingerScreenLockTimer"));
+  OSNumber * pressureFiltering = OSDynamicCast( OSNumber, dict->getObject("CypressPressureFiltering"));
+  OSNumber * twoFingerFiltering = OSDynamicCast( OSNumber, dict->getObject("Cypress2FingerFiltering"));
+  OSNumber * threeFingerFiltering = OSDynamicCast( OSNumber, dict->getObject("Cypress3FingerFiltering"));
+  OSNumber * fourFingerFiltering = OSDynamicCast( OSNumber, dict->getObject("Cypress4FingerFiltering"));
 
 #ifdef DEBUG
   OSCollectionIterator* iter = OSCollectionIterator::withCollection( dict );
@@ -617,6 +701,27 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
 		  str->getCStringNoCopy());
     }
 #endif
+  if (pressureFiltering)
+    {
+      _pressureFiltering = pressureFiltering->unsigned32BitValue();
+      _kalZ.noiseLevel(_pressureFiltering);
+      setProperty("CypressPressureFiltering", pressureFiltering);
+    }
+  if (twoFingerFiltering)
+    {
+      _twoFingerFiltering = twoFingerFiltering->unsigned32BitValue();
+      setProperty("Cypress2FingerFiltering", twoFingerFiltering);
+    }
+  if (threeFingerFiltering)
+    {
+      _threeFingerFiltering = threeFingerFiltering->unsigned32BitValue();
+      setProperty("Cypress3FingerFiltering", threeFingerFiltering);
+    }
+  if (fourFingerFiltering)
+    {
+      _fourFingerFiltering = fourFingerFiltering->unsigned32BitValue();
+      setProperty("Cypress4FingerFiltering", fourFingerFiltering);
+    }
   if (clicking)
     {
       _clicking = clicking->unsigned32BitValue() & 0x1 ? true : false;
@@ -646,7 +751,7 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
   if (scrollspeed)
     {
       float tmp = (float)(scrollspeed->unsigned32BitValue());
-      tmp = (((196608.0f - tmp) / 32768.0f) + 1.0f);
+      tmp = (((196608.0f - tmp) / 65536.0f) + 1.0f);
       _twofingervdivider = tmp;
       _twofingerhdivider = tmp;
       setProperty("HIDTrackpadScrollAcceleration", scrollspeed);
@@ -718,7 +823,7 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
     }
   if (fiveFingerScreenLockTimer)
     {
-      _fivefingersleeptime = ((fiveFingerScreenLockTimer->unsigned32BitValue()) * 1000000);
+      _fivefingerscreenlocktime = ((fiveFingerScreenLockTimer->unsigned32BitValue()) * 1000000);
       setProperty("Cypress5FingerScreenLockTimer", fiveFingerScreenLockTimer);
     }
   return super::setParamProperties(dict);
@@ -1074,92 +1179,123 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
   clock_get_uptime(&now_abs);
   if (_frameTimer == 0)
     _frameTimer = now_abs;
-  _framePressure +=  report_data.contacts[0].z;
+  if (_frameType > 1 && _frameCounter <= 1)
+    {
+      _kalX.noiseLevel((_frameType == 2 ? _twoFingerFiltering : (_frameType == 3 ? _threeFingerFiltering : _fourFingerFiltering)));
+      _kalY.noiseLevel((_frameType == 2 ? _twoFingerFiltering : (_frameType == 3 ? _threeFingerFiltering : _fourFingerFiltering)));
+    }
+  _framePressure += (_pressureFiltering ? _kalZ.getNewValue(report_data.contacts[0].z) : report_data.contacts[0].z);
   if (n > 1)
     {
       // two, or more fingers
-
-      if (n == 5)
+      if (n == 5 && _fiveFingerSleep && (now_abs - _frameTimer) > _fivefingersleeptime && _slept == false)
 	{
-	  if (_fiveFingerSleep && (now_abs - _frameTimer) > _fivefingersleeptime && _slept == false)
-	    {
-	      _slept = true;
-	      _device->dispatchKeyboardMessage(kPS2M_sleepComputer, &now_abs);
-		return ;
-	    }
+	  _slept = true;
+	  _device->dispatchKeyboardMessage(kPS2M_sleepComputer, &now_abs);
+	  return ;
 	}
       if (n == 4)
 	{
-	  int x = report_data.contacts[0].x;
-	  int y = report_data.contacts[0].y;
-	  DEBUG_LOG("CYPRESS: old coord: _xpos=%d _ypos=%d\n", _xpos, _ypos);
-	  if (_x4pos < 0)
-	    _x4pos = x;
-	  if (_y4pos < 0)
-	    _y4pos = y;
-	  xdiff = x - _x4pos;
-	  ydiff = y - _y4pos;
-	  _swipey += ydiff;
-	  _swipex += xdiff;
-
-	  /// EDIT HERE !!
-	  if (((now_abs - _frameTimer) > _fourfingermaxtaptime) && _swiped == false
-	      && (abs(_swipex) > _swipexThreshold ||  abs(_swipey) > _swipeyThreshold))
+	  if (_frameCounter > 4 && (now_abs - _frameTimer) > _fourfingermaxtaptime && (abs(_swipex) > _swipexThreshold ||  abs(_swipey * 2) > _swipeyThreshold))
 	    {
-	      DEBUG_LOG("CYPRESS: 4 Finger swipe : _swipex=%d _swipey=%d\n", _swipex, _swipey);
-	      if (abs(_swipex) < abs((_swipey * 3) / 2) && _fourFingerVertSwipeGesture) // need to keep ratio between x and y => y is less surface in size
-		_device->dispatchKeyboardMessage((_swipey < 0 ? kPS2M_swipeUp : kPS2M_swipeDown), &now_abs);
-	      else
-		if (_fourFingerHorizSwipeGesture)
-		  _device->dispatchKeyboardMessage((_swipex < 0 ? kPS2M_swipeRight : kPS2M_swipeLeft), &now_abs);
-	      _swiped = true;
-	      _swipey = 0;
-	      _swipex = 0;
+	      int x = (_fourFingerFiltering ? _kalX.getNewValue(report_data.contacts[0].x) : report_data.contacts[0].x);
+	      int y = (_fourFingerFiltering ? _kalY.getNewValue(report_data.contacts[0].y) : report_data.contacts[0].y);
+	      DEBUG_LOG("CYPRESS: old coord: _xpos=%d _ypos=%d\n", _xpos, _ypos);
+	      if (_x4pos < 0)
+		_x4pos = x;
+	      if (_y4pos < 0)
+		_y4pos = y;
+	      xdiff = x - _x4pos;
+	      ydiff = y - _y4pos;
+	      _swipey += ydiff;
+	      _swipex += xdiff;
+	      if (_swiped == false)// && (abs(_swipex) > _swipexThreshold ||  abs(_swipey) > _swipeyThreshold))
+		{
+		  DEBUG_LOG("CYPRESS: 4 Finger swipe : _swipex=%d _swipey=%d\n", _swipex, _swipey);
+		  if (abs(_swipex) < abs((_swipey * 2)) && _fourFingerVertSwipeGesture) // need to keep ratio between x and y => y is less surface in size
+		    _device->dispatchKeyboardMessage((_swipey < 0 ? kPS2M_swipeUp : kPS2M_swipeDown), &now_abs);
+		  else
+		    if (_fourFingerHorizSwipeGesture)
+		      _device->dispatchKeyboardMessage((_swipex < 0 ? kPS2M_swipeRight : kPS2M_swipeLeft), &now_abs);
+		  _swiped = true;
+		  _swipey = 0;
+		  _swipex = 0;
+		}
+	    }
+	  else
+	    {
+	      int x = (_fourFingerFiltering ? _kalX.getNewValue(report_data.contacts[0].x) : report_data.contacts[0].x);
+	      int y = (_fourFingerFiltering ? _kalY.getNewValue(report_data.contacts[0].y) : report_data.contacts[0].y);
+	      if (_x4pos < 0)
+		_x4pos = x;
+	      if (_y4pos < 0)
+		_y4pos = y;
+	      xdiff = x - _x4pos;
+	      ydiff = y - _y4pos;
+	      _swipey += ydiff;
+	      _swipex += xdiff;
 	    }
 	}
-      if (_threeFingerDrag && n == 3 && ((now_abs - _frameTimer) > _threefingermaxtaptime))
+      if (_threeFingerDrag && n == 3)
 	{
-	  int x = report_data.contacts[0].x;
-	  int y = report_data.contacts[0].y;
-	  DEBUG_LOG("CYPRESS: old coord: _xpos=%d _ypos=%d\n", _xpos, _ypos);
-	  if (_xpos < 0)
-	    _xpos = x;
-	  if (_ypos < 0)
-	    _ypos = y;
-	  xdiff = x - _xpos;
-	  ydiff = y - _ypos;
-	  _xpos = x;
-	  _ypos = y;
-	  buttons |= 0x01; // three fingers window move
-	  _pendingButtons = buttons;
-	  xdiff /= _threefingerhdivider;
-	  ydiff /= _threefingervdivider;
-	  DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
-	  dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
+	  if (((now_abs - _frameTimer) > _threefingermaxtaptime))
+	    {
+	      int x = (_threeFingerFiltering ? _kalX.getNewValue(report_data.contacts[0].x) : report_data.contacts[0].x);
+	      int y = (_threeFingerFiltering ? _kalY.getNewValue(report_data.contacts[0].y) : report_data.contacts[0].y);
+	      DEBUG_LOG("CYPRESS: old coord: _xpos=%d _ypos=%d\n", _xpos, _ypos);
+	      if (_xpos < 0)
+		_xpos = x;
+	      if (_ypos < 0)
+		_ypos = y;
+	      xdiff = x - _xpos;
+	      ydiff = y - _ypos;
+
+	      _xpos = x;
+	      _ypos = y;
+	      buttons |= 0x01; // three fingers window move
+	      _pendingButtons = buttons;
+	      xdiff = (int)((float)((float)xdiff / (float)_threefingerhdivider));
+	      ydiff = (int)((float)((float)ydiff / (float)_threefingervdivider));
+	      DEBUG_LOG("CYPRESS: Sending pointer event: %d,%d,%d\n", xdiff, ydiff,(int)buttons);
+	      dispatchRelativePointerEventX(xdiff, ydiff, buttons, now_abs);
+	    }
+	  else
+	    if (_threeFingerFiltering)
+	      {
+		_kalX.getNewValue(report_data.contacts[0].x);
+		_kalY.getNewValue(report_data.contacts[0].y);
+	      }
 	}
-      if (_trackpadScroll && n == 2 && _frameCounter >= _twoFingersMaxCount) // cannot link with tap timer => create a delay on scrolling, which is a wrong/unwanted behaviour
+      if (_trackpadScroll && n == 2) // cannot link with tap timer => create a delay on scrolling, which is a wrong/unwanted behaviour
 	{
 	  // two fingers
-	  int x = report_data.contacts[0].x;
-	  int y = report_data.contacts[0].y;
-	  DEBUG_LOG("CYPRESS: old scroll coord: _xscrollpos=%d _yscrollpos=%d\n", _xscrollpos, _yscrollpos);
-	  if (_xscrollpos < 0)
-	    _xscrollpos = x;
-	  if (_yscrollpos < 0)
-	    _yscrollpos = y;
-	  xdiff = x - _xscrollpos;
-	  ydiff = y - _yscrollpos;
-	  _xscrollpos = x;
-	  _yscrollpos = y;
-	  //buttons |= report_data.left ? 0x01 : 0;
-	  //buttons |= report_data.right ? 0x02 : 0;
-	  xdiff = (int)((float)((float)xdiff / (float)_twofingerhdivider));
-	  ydiff = (int)((float)((float)ydiff / (float)_twofingervdivider));
-	  DEBUG_LOG("CYPRESS: Sending Scroll event: %d,%d\n", xdiff, ydiff);
-	  if (_trackpadHorizScroll && abs(xdiff) > abs(ydiff))
-	    dispatchScrollWheelEventX(0, -xdiff, 0, now_abs);
+	  if ( _frameCounter >= _twoFingersMaxCount)
+	    {
+	      int x = (_twoFingerFiltering ? _kalX.getNewValue(report_data.contacts[0].x) : report_data.contacts[0].x);
+	      int y = (_twoFingerFiltering ? _kalY.getNewValue(report_data.contacts[0].y) : report_data.contacts[0].y);
+	      DEBUG_LOG("CYPRESS: old scroll coord: _xscrollpos=%d _yscrollpos=%d\n", _xscrollpos, _yscrollpos);
+	      if (_xscrollpos < 0)
+		_xscrollpos = x;
+	      if (_yscrollpos < 0)
+		_yscrollpos = y;
+	      xdiff = x - _xscrollpos;
+	      ydiff = y - _yscrollpos;
+	      _xscrollpos = x;
+	      _yscrollpos = y;
+	      xdiff = (int)((float)((float)xdiff / (float)_twofingerhdivider));
+	      ydiff = (int)((float)((float)ydiff / (float)_twofingervdivider));
+	      DEBUG_LOG("CYPRESS: Sending Scroll event: %d,%d\n", xdiff, ydiff);
+	      if (_trackpadHorizScroll && abs(xdiff) > abs(ydiff))
+		dispatchScrollWheelEventX(0, -xdiff, 0, now_abs);
+	      else
+		dispatchScrollWheelEventX(-ydiff, 0, 0, now_abs);
+	    }
 	  else
-	    dispatchScrollWheelEventX(-ydiff, 0, 0, now_abs);
+	    if (_twoFingerFiltering)
+	      {
+		_kalX.getNewValue(report_data.contacts[0].x);
+		_kalY.getNewValue(report_data.contacts[0].y);
+	      }
 	}
     }
   else
