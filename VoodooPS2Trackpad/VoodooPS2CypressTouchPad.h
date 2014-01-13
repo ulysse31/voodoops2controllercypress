@@ -343,6 +343,7 @@ private:
 	unsigned int			_threeFingerFiltering;
 	unsigned int			_fourFingerFiltering;
 
+	unsigned int			_twoFingerDivider;
 	float				_twofingervdivider;
 	float				_twofingerhdivider;
 	double				_onefingermaxtaptime;

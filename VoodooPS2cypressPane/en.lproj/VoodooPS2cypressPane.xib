@@ -7,14 +7,29 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="VoodooPS2Pref">
             <connections>
+                <outlet property="EnableFiveFingersScreenLock" destination="cLD-Cj-O0z" id="Ft7-MO-sI7"/>
+                <outlet property="EnableFiveFingersSleep" destination="duD-wB-NXH" id="ejv-4R-XZT"/>
+                <outlet property="EnableOneFingerTapping" destination="Ize-mt-6lG" id="M1t-IH-eKt"/>
+                <outlet property="EnableThreeFingerDrag" destination="LzI-qk-BI0" id="hCd-s0-TD8"/>
+                <outlet property="EnableThreeFingerDragFiltering" destination="2X0-Ps-MbR" id="hkk-4a-e7r"/>
+                <outlet property="EnableThreeFingerDragFiltering_Text" destination="wbU-f6-DoO" id="rWV-hH-thB"/>
+                <outlet property="EnabletwoFingersHorizScroll" destination="lnm-J8-WzK" id="LCP-tU-04C"/>
                 <outlet property="EnabletwoFingersRightTap" destination="iWg-ji-0yx" id="dKs-k8-nmP"/>
+                <outlet property="EnabletwoFingersRightTapFiltering" destination="Dtn-mc-Mih" id="OQ4-N7-jgM"/>
+                <outlet property="EnabletwoFingersVertScroll" destination="Z1r-o5-uv5" id="hdW-8O-aiJ"/>
+                <outlet property="ThreeFingersDragTime_slide" destination="v5D-40-Wmq" id="0xl-y8-IQI"/>
+                <outlet property="TwoFingerNoiseLevelText" destination="MIu-Up-ixs" id="rbD-iP-n9C"/>
                 <outlet property="_window" destination="12" id="317"/>
-                <outlet property="maxTapTimeSlider" destination="182" id="318"/>
-                <outlet property="speedSliderX" destination="176" id="397"/>
-                <outlet property="speedSliderY" destination="390" id="398"/>
-                <outlet property="stabTapButton" destination="180" id="334"/>
+                <outlet property="oneFingerDragFiltering" destination="aG5-CJ-adO" id="rRD-Xq-PMm"/>
+                <outlet property="oneFingerDragFiltering_Text" destination="sLP-VW-V1r" id="yea-8a-SA9"/>
+                <outlet property="oneFingerRightTapTime_slide" destination="u2V-xL-xyK" id="RY1-bd-9ba"/>
+                <outlet property="oneFingerRightTapTime_text" destination="pO3-ni-2cR" id="naW-ad-W3Z"/>
+                <outlet property="twoFingerNoiseLevel" destination="2bP-UR-Z0c" id="NdJ-6Z-G6s"/>
+                <outlet property="twoFingerNoiseLevelLabel" destination="2bP-UR-Z0c" id="FGR-EM-0cv"/>
+                <outlet property="twoFingerNoiseLevelText" destination="3TO-DN-Pln" id="FDi-RF-rgR"/>
                 <outlet property="twoFingersRightTapTime_slide" destination="sD0-gk-cjh" id="ti2-vc-fOg"/>
                 <outlet property="twoFingersRightTapTime_text" destination="bd5-hT-ZFj" id="SW9-6C-fLH"/>
+                <outlet property="twoFingersVertScroll_slide" destination="6jl-td-bNc" id="asp-DD-qiI"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -39,126 +54,91 @@
                                     <rect key="frame" x="10" y="33" width="622" height="306"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <box autoresizesSubviews="NO" borderType="line" id="302">
-                                            <rect key="frame" x="107" y="253" width="408" height="46"/>
+                                        <box autoresizesSubviews="NO" title="Tapping" borderType="line" id="PxE-x8-sli">
+                                            <rect key="frame" x="38" y="182" width="547" height="124"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <view key="contentView">
-                                                <rect key="frame" x="1" y="1" width="406" height="30"/>
+                                                <rect key="frame" x="1" y="1" width="545" height="108"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
-                                                    <textField verticalHuggingPriority="750" id="172">
-                                                        <rect key="frame" x="15" y="5" width="160" height="20"/>
+                                                    <slider verticalHuggingPriority="750" id="u2V-xL-xyK">
+                                                        <rect key="frame" x="130" y="51" width="315" height="21"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed Horizontal" id="173">
-                                                            <font key="font" metaFont="system"/>
-                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                                        </textFieldCell>
-                                                    </textField>
-                                                    <slider verticalHuggingPriority="750" id="176">
-                                                        <rect key="frame" x="178" y="6" width="212" height="21"/>
-                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <sliderCell key="cell" state="on" alignment="left" maxValue="100" doubleValue="42.199770942408378" tickMarkPosition="above" sliderType="linear" id="177">
-                                                            <font key="font" size="12" name="Helvetica-Bold"/>
-                                                        </sliderCell>
+                                                        <sliderCell key="cell" state="on" alignment="left" minValue="1" maxValue="800" doubleValue="179.79206730769232" tickMarkPosition="above" sliderType="linear" id="Lsp-QD-gLe"/>
                                                         <connections>
-                                                            <action selector="SlideSpeedXAction:" target="-2" id="399"/>
+                                                            <action selector="SlideOneFingerTapAction:" target="-2" id="isQ-25-4RS"/>
                                                         </connections>
                                                     </slider>
-                                                </subviews>
-                                            </view>
-                                            <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
-                                            <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                        </box>
-                                        <box autoresizesSubviews="NO" borderType="line" id="389">
-                                            <rect key="frame" x="107" y="213" width="408" height="46"/>
-                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                            <view key="contentView">
-                                                <rect key="frame" x="1" y="1" width="406" height="30"/>
-                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                <subviews>
-                                                    <textField verticalHuggingPriority="750" id="391">
-                                                        <rect key="frame" x="15" y="5" width="160" height="20"/>
+                                                    <button id="Ize-mt-6lG">
+                                                        <rect key="frame" x="16" y="76" width="64" height="18"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed Vertical" id="392">
-                                                            <font key="font" metaFont="system"/>
-                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                                        </textFieldCell>
-                                                    </textField>
-                                                    <slider verticalHuggingPriority="750" id="390">
-                                                        <rect key="frame" x="178" y="5" width="212" height="21"/>
-                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <sliderCell key="cell" state="on" alignment="left" maxValue="100" tickMarkPosition="above" sliderType="linear" id="393">
-                                                            <font key="font" size="12" name="Helvetica-Bold"/>
-                                                        </sliderCell>
-                                                        <connections>
-                                                            <action selector="SlideSpeedYAction:" target="-2" id="400"/>
-                                                        </connections>
-                                                    </slider>
-                                                </subviews>
-                                            </view>
-                                            <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
-                                            <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                        </box>
-                                        <box autoresizesSubviews="NO" borderType="line" id="303">
-                                            <rect key="frame" x="107" y="163" width="408" height="46"/>
-                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                            <view key="contentView">
-                                                <rect key="frame" x="1" y="1" width="406" height="30"/>
-                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                <subviews>
-                                                    <textField verticalHuggingPriority="750" id="150">
-                                                        <rect key="frame" x="15" y="5" width="56" height="20"/>
-                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Tapping" id="151">
-                                                            <font key="font" metaFont="system"/>
-                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                                        </textFieldCell>
-                                                    </textField>
-                                                    <button id="180">
-                                                        <rect key="frame" x="177" y="0.0" width="128" height="30"/>
-                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <buttonCell key="cell" type="check" title="Enable Tapping" bezelStyle="regularSquare" imagePosition="left" alignment="center" state="on" inset="2" id="181">
+                                                        <buttonCell key="cell" type="check" title="Enable" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="xYF-Pv-jL8">
                                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
                                                         <connections>
-                                                            <action selector="TapAction:" target="-2" id="354"/>
+                                                            <action selector="EnableOneFingerTapAction:" target="-2" id="bxv-xY-d7F"/>
                                                         </connections>
                                                     </button>
-                                                </subviews>
-                                            </view>
-                                            <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
-                                            <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                        </box>
-                                        <box autoresizesSubviews="NO" borderType="line" id="304">
-                                            <rect key="frame" x="107" y="121" width="408" height="46"/>
-                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                            <view key="contentView">
-                                                <rect key="frame" x="1" y="1" width="406" height="30"/>
-                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                <subviews>
-                                                    <textField verticalHuggingPriority="750" id="174">
-                                                        <rect key="frame" x="15" y="5" width="152" height="20"/>
+                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="AnN-aj-4TC">
+                                                        <rect key="frame" x="506" y="53" width="23" height="17"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Maximum tapping time" id="175">
+                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="ms" id="zhV-lz-aWO">
                                                             <font key="font" metaFont="system"/>
                                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                         </textFieldCell>
                                                     </textField>
-                                                    <slider verticalHuggingPriority="750" id="182">
-                                                        <rect key="frame" x="178" y="4" width="212" height="21"/>
+                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="VTK-6d-q8X">
+                                                        <rect key="frame" x="18" y="53" width="92" height="17"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <sliderCell key="cell" state="on" alignment="left" maxValue="100" doubleValue="50" tickMarkPosition="above" sliderType="linear" id="183">
-                                                            <font key="font" size="12" name="Helvetica"/>
-                                                        </sliderCell>
+                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Max Tap Time" id="01b-zN-uMU">
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
+                                                    <textField verticalHuggingPriority="750" id="pO3-ni-2cR">
+                                                        <rect key="frame" x="451" y="53" width="49" height="22"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="rZ7-4X-i9W">
+                                                            <numberFormatter key="formatter" formatterBehavior="default10_4" positiveFormat="#,##0.###" negativeFormat="#,##0.###" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="309" minimumFractionDigits="0" maximumFractionDigits="3" id="I36-eF-hCO">
+                                                                <real key="roundingIncrement" value="0.0"/>
+                                                                <metadata>
+                                                                    <bool key="localizesFormat" value="YES"/>
+                                                                </metadata>
+                                                            </numberFormatter>
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
                                                         <connections>
-                                                            <action selector="TapAction:" target="-2" id="356"/>
+                                                            <action selector="TextOneFingerTapAction:" target="-2" id="fR8-UY-OHD"/>
                                                         </connections>
-                                                    </slider>
+                                                    </textField>
+                                                    <textField verticalHuggingPriority="750" id="sLP-VW-V1r">
+                                                        <rect key="frame" x="140" y="14" width="49" height="22"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="PvP-z5-wOu">
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                        <connections>
+                                                            <action selector="oneFingerTapFilteringAction:" target="-2" id="n2l-SK-dWp"/>
+                                                        </connections>
+                                                    </textField>
+                                                    <button id="aG5-CJ-adO">
+                                                        <rect key="frame" x="16" y="16" width="117" height="18"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <buttonCell key="cell" type="check" title="Filter Dragging" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="akr-oV-0FM">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="system"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <action selector="oneFingerTapFilteringAction:" target="-2" id="Lym-j4-VEl"/>
+                                                        </connections>
+                                                    </button>
                                                 </subviews>
                                             </view>
                                             <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
@@ -173,30 +153,33 @@
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <box autoresizesSubviews="NO" title="Two fingers Tap Right Click" borderType="line" id="Kes-4y-sgj">
-                                            <rect key="frame" x="38" y="236" width="547" height="70"/>
+                                            <rect key="frame" x="38" y="108" width="547" height="93"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <view key="contentView">
-                                                <rect key="frame" x="1" y="1" width="545" height="54"/>
+                                                <rect key="frame" x="1" y="1" width="545" height="77"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
                                                     <slider verticalHuggingPriority="750" id="sD0-gk-cjh">
-                                                        <rect key="frame" x="208" y="19" width="242" height="21"/>
+                                                        <rect key="frame" x="130" y="20" width="315" height="21"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <sliderCell key="cell" alignment="left" minValue="1" maxValue="800" doubleValue="381.67457932692309" tickMarkPosition="above" sliderType="linear" id="HFC-RT-Xdt"/>
+                                                        <sliderCell key="cell" state="on" alignment="left" minValue="1" maxValue="800" doubleValue="179.79206730769232" tickMarkPosition="above" sliderType="linear" id="HFC-RT-Xdt"/>
                                                         <connections>
                                                             <action selector="SlideTwoFingersTapAction:" target="-2" id="wHl-ZZ-kFO"/>
                                                         </connections>
                                                     </slider>
                                                     <button id="iWg-ji-0yx">
-                                                        <rect key="frame" x="16" y="22" width="64" height="18"/>
+                                                        <rect key="frame" x="16" y="45" width="64" height="18"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                         <buttonCell key="cell" type="check" title="Enable" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="n0c-Qb-nEx">
                                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <connections>
+                                                            <action selector="EnableTwoFingersTapAction:" target="-2" id="0qW-WC-6v3"/>
+                                                        </connections>
                                                     </button>
                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="yWR-V3-5Oh">
-                                                        <rect key="frame" x="506" y="21" width="23" height="17"/>
+                                                        <rect key="frame" x="506" y="25" width="23" height="17"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="ms" id="WwU-Tt-tyG">
                                                             <font key="font" metaFont="system"/>
@@ -205,7 +188,7 @@
                                                         </textFieldCell>
                                                     </textField>
                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="xN1-tA-z5U">
-                                                        <rect key="frame" x="112" y="23" width="92" height="17"/>
+                                                        <rect key="frame" x="18" y="22" width="92" height="17"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Max Tap Time" id="iD2-G0-H4s">
                                                             <font key="font" metaFont="system"/>
@@ -214,7 +197,7 @@
                                                         </textFieldCell>
                                                     </textField>
                                                     <textField verticalHuggingPriority="750" id="bd5-hT-ZFj">
-                                                        <rect key="frame" x="456" y="20" width="49" height="22"/>
+                                                        <rect key="frame" x="451" y="22" width="49" height="22"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="ZZw-Uu-eP1">
                                                             <numberFormatter key="formatter" formatterBehavior="default10_4" positiveFormat="#,##0.###" negativeFormat="#,##0.###" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="309" minimumFractionDigits="0" maximumFractionDigits="3" id="TBI-jz-eIL">
@@ -228,7 +211,7 @@
                                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                         </textFieldCell>
                                                         <connections>
-                                                            <action selector="takeIntValueFrom:" target="sD0-gk-cjh" id="uGS-HM-nYS"/>
+                                                            <action selector="TextTwoFingersTapAction:" target="-2" id="8sF-5K-pTC"/>
                                                         </connections>
                                                     </textField>
                                                 </subviews>
@@ -237,80 +220,74 @@
                                             <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                                         </box>
                                         <box autoresizesSubviews="NO" title="Two Fingers Scrolling" borderType="line" id="Rda-Kp-BaE">
-                                            <rect key="frame" x="38" y="5" width="547" height="227"/>
+                                            <rect key="frame" x="38" y="205" width="547" height="101"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <view key="contentView">
-                                                <rect key="frame" x="1" y="1" width="545" height="211"/>
+                                                <rect key="frame" x="1" y="1" width="545" height="85"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
-                                                    <box autoresizesSubviews="NO" title="Horizontal" borderType="line" id="Str-dJ-4Cs">
-                                                        <rect key="frame" x="15" y="31" width="514" height="69"/>
+                                                    <slider verticalHuggingPriority="750" id="6jl-td-bNc">
+                                                        <rect key="frame" x="84" y="34" width="377" height="21"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <view key="contentView">
-                                                            <rect key="frame" x="1" y="1" width="512" height="53"/>
-                                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                            <subviews>
-                                                                <button id="lnm-J8-WzK">
-                                                                    <rect key="frame" x="16" y="19" width="64" height="18"/>
-                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                                    <buttonCell key="cell" type="check" title="Enable" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="3DU-3o-9zC">
-                                                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                                        <font key="font" metaFont="system"/>
-                                                                    </buttonCell>
-                                                                </button>
-                                                                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="BDZ-zU-1nN">
-                                                                    <rect key="frame" x="97" y="21" width="42" height="17"/>
-                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed" id="voZ-p2-p4b">
-                                                                        <font key="font" metaFont="system"/>
-                                                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                                                    </textFieldCell>
-                                                                </textField>
-                                                                <slider verticalHuggingPriority="750" id="vNh-84-uDu">
-                                                                    <rect key="frame" x="147" y="16" width="341" height="21"/>
-                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                                    <sliderCell key="cell" state="on" alignment="left" maxValue="800" doubleValue="399.04296875" tickMarkPosition="above" sliderType="linear" id="eVk-A6-Xie"/>
-                                                                </slider>
-                                                            </subviews>
-                                                        </view>
-                                                        <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
-                                                        <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                                    </box>
-                                                    <box autoresizesSubviews="NO" title="Vertical" borderType="line" id="Eum-zw-IeH">
-                                                        <rect key="frame" x="15" y="120" width="514" height="69"/>
+                                                        <sliderCell key="cell" state="on" alignment="left" maxValue="800" doubleValue="48.929073033707866" tickMarkPosition="above" sliderType="linear" id="uzf-4H-JWm"/>
+                                                    </slider>
+                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="QYY-gQ-hqh">
+                                                        <rect key="frame" x="29" y="36" width="42" height="17"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                        <view key="contentView">
-                                                            <rect key="frame" x="1" y="1" width="512" height="53"/>
-                                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                            <subviews>
-                                                                <button id="Z1r-o5-uv5">
-                                                                    <rect key="frame" x="16" y="19" width="64" height="18"/>
-                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                                    <buttonCell key="cell" type="check" title="Enable" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="WOm-kF-34Q">
-                                                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                                        <font key="font" metaFont="system"/>
-                                                                    </buttonCell>
-                                                                </button>
-                                                                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="QYY-gQ-hqh">
-                                                                    <rect key="frame" x="97" y="21" width="42" height="17"/>
-                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed" id="2MG-7a-wiS">
-                                                                        <font key="font" metaFont="system"/>
-                                                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                                                    </textFieldCell>
-                                                                </textField>
-                                                                <slider verticalHuggingPriority="750" id="6jl-td-bNc">
-                                                                    <rect key="frame" x="147" y="16" width="341" height="21"/>
-                                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                                    <sliderCell key="cell" state="on" alignment="left" maxValue="800" doubleValue="399.04296875" tickMarkPosition="above" sliderType="linear" id="uzf-4H-JWm"/>
-                                                                </slider>
-                                                            </subviews>
-                                                        </view>
-                                                        <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
-                                                        <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
-                                                    </box>
+                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed" id="2MG-7a-wiS">
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
+                                                    <button id="Z1r-o5-uv5">
+                                                        <rect key="frame" x="29" y="59" width="70" height="18"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <buttonCell key="cell" type="check" title="Vertical" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="WOm-kF-34Q">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="system"/>
+                                                        </buttonCell>
+                                                    </button>
+                                                    <button id="lnm-J8-WzK">
+                                                        <rect key="frame" x="228" y="59" width="88" height="18"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <buttonCell key="cell" type="check" title="Horizontal" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="3DU-3o-9zC">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="system"/>
+                                                        </buttonCell>
+                                                    </button>
+                                                    <button id="Dtn-mc-Mih">
+                                                        <rect key="frame" x="41" y="12" width="113" height="18"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <buttonCell key="cell" type="check" title="Filter Scrolling" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="ccB-iE-StV">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="system"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <action selector="EnableTwoFingersTapFilteringAction:" target="-2" id="bzA-Ls-p0F"/>
+                                                        </connections>
+                                                    </button>
+                                                    <textField verticalHuggingPriority="750" id="MIu-Up-ixs">
+                                                        <rect key="frame" x="249" y="11" width="45" height="22"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="3TO-DN-Pln">
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                        <connections>
+                                                            <action selector="EnableTwoFingersTapFilteringAction:" target="-2" id="tIh-om-8JB"/>
+                                                        </connections>
+                                                    </textField>
+                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="2bP-UR-Z0c">
+                                                        <rect key="frame" x="161" y="13" width="83" height="17"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Noise Level :" id="6TV-5G-UgN">
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
                                                 </subviews>
                                             </view>
                                             <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
@@ -334,22 +311,25 @@
                                             </textFieldCell>
                                         </textField>
                                         <box autoresizesSubviews="NO" title="Three Fingers Drag" borderType="line" id="6bl-3Y-Wrp">
-                                            <rect key="frame" x="38" y="236" width="547" height="70"/>
+                                            <rect key="frame" x="38" y="214" width="547" height="92"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <view key="contentView">
-                                                <rect key="frame" x="1" y="1" width="545" height="54"/>
+                                                <rect key="frame" x="1" y="1" width="545" height="76"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
                                                     <button id="LzI-qk-BI0">
-                                                        <rect key="frame" x="16" y="22" width="64" height="18"/>
+                                                        <rect key="frame" x="16" y="44" width="64" height="18"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                         <buttonCell key="cell" type="check" title="Enable" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="Wm1-v9-ozI">
                                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <connections>
+                                                            <action selector="EnableThreeFingersDragAction:" target="-2" id="VVM-S8-YrZ"/>
+                                                        </connections>
                                                     </button>
                                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="nXT-2M-T2s">
-                                                        <rect key="frame" x="110" y="23" width="42" height="17"/>
+                                                        <rect key="frame" x="110" y="45" width="42" height="17"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Speed" id="fby-E1-gmi">
                                                             <font key="font" metaFont="system"/>
@@ -358,10 +338,30 @@
                                                         </textFieldCell>
                                                     </textField>
                                                     <slider verticalHuggingPriority="750" id="v5D-40-Wmq">
-                                                        <rect key="frame" x="164" y="19" width="370" height="21"/>
+                                                        <rect key="frame" x="164" y="41" width="370" height="21"/>
                                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                         <sliderCell key="cell" state="on" alignment="left" maxValue="800" doubleValue="400" tickMarkPosition="above" sliderType="linear" id="HaP-GJ-fD0"/>
                                                     </slider>
+                                                    <button id="2X0-Ps-MbR">
+                                                        <rect key="frame" x="16" y="12" width="91" height="18"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <buttonCell key="cell" type="check" title="Filter Input" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="WFL-tT-d9t">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="system"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <action selector="EnableThreeFingersTapFilteringAction:" target="-2" id="duW-11-zn9"/>
+                                                        </connections>
+                                                    </button>
+                                                    <textField verticalHuggingPriority="750" id="wbU-f6-DoO">
+                                                        <rect key="frame" x="114" y="13" width="49" height="22"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="SDd-2h-JOT">
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
                                                 </subviews>
                                             </view>
                                             <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
@@ -391,6 +391,9 @@
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
+                                            <connections>
+                                                <action selector="EnableFiveFingersScreenLockAction:" target="-2" id="Ll8-vk-vZV"/>
+                                            </connections>
                                         </button>
                                         <button id="duD-wB-NXH">
                                             <rect key="frame" x="26" y="238" width="118" height="18"/>
@@ -399,7 +402,77 @@
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
+                                            <connections>
+                                                <action selector="EnableFiveFingersSleepAction:" target="-2" id="fGy-8e-ODs"/>
+                                            </connections>
                                         </button>
+                                    </subviews>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="Info.plist" identifier="2" id="Z2r-R0-bhP">
+                                <view key="view" id="sWB-nQ-tsJ">
+                                    <rect key="frame" x="10" y="33" width="622" height="306"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textField verticalHuggingPriority="750" id="a2e-LS-YuG">
+                                            <rect key="frame" x="14" y="282" width="38" height="17"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" id="ZSL-rA-3nT">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <scrollView horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" id="eTj-Xc-CzA">
+                                            <rect key="frame" x="28" y="17" width="567" height="243"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <clipView key="contentView" id="lDn-lV-jwT">
+                                                <rect key="frame" x="1" y="1" width="565" height="241"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <textView importsGraphics="NO" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" smartInsertDelete="YES" id="UGX-u1-IKA">
+                                                        <rect key="frame" x="0.0" y="0.0" width="565" height="241"/>
+                                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                                        <size key="minSize" width="565" height="241"/>
+                                                        <size key="maxSize" width="586" height="10000000"/>
+                                                        <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                                                        <size key="minSize" width="565" height="241"/>
+                                                        <size key="maxSize" width="586" height="10000000"/>
+                                                    </textView>
+                                                </subviews>
+                                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                            </clipView>
+                                            <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="YES" id="Rod-dv-AV2">
+                                                <rect key="frame" x="-100" y="-100" width="87" height="18"/>
+                                                <autoresizingMask key="autoresizingMask"/>
+                                            </scroller>
+                                            <scroller key="verticalScroller" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="6oX-OT-IKO">
+                                                <rect key="frame" x="550" y="1" width="16" height="241"/>
+                                                <autoresizingMask key="autoresizingMask"/>
+                                            </scroller>
+                                        </scrollView>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="elv-36-OZ7">
+                                            <rect key="frame" x="46" y="231" width="517" height="68"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" id="Elw-xT-GPu">
+                                                <font key="font" metaFont="system"/>
+                                                <string key="title">If you want your settings to be permanent, edit the VoodooPS2Trackpad Info.plist 
+
+</string>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="sWn-a4-DoM">
+                                            <rect key="frame" x="71" y="267" width="467" height="17"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="And replace the content of the Cypress section with the following values :" id="lWa-ys-e4G">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
                                     </subviews>
                                 </view>
                             </tabViewItem>

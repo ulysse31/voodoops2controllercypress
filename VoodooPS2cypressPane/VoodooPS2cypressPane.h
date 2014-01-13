@@ -31,13 +31,33 @@
 	IBOutlet NSButton * adwButton;
 	IBOutlet NSButton * msButton;
     
-    
-    
+    // General
+    IBOutlet NSTextField *oneFingerRightTapTime_text;
+    IBOutlet NSSlider *oneFingerRightTapTime_slide;
+    IBOutlet NSButton *EnableOneFingerTapping;
+    IBOutlet NSButton *oneFingerDragFiltering;
+    IBOutlet NSTextField *oneFingerDragFiltering_Text;
+    // Two Fingers
     IBOutlet NSTextField *twoFingersRightTapTime_text;
     IBOutlet NSSlider *twoFingersRightTapTime_slide;
     IBOutlet NSButton *EnabletwoFingersRightTap;
+    IBOutlet NSButton *EnabletwoFingersRightTapFiltering;
+    IBOutlet NSTextField *twoFingerNoiseLevelLabel;
+    IBOutlet NSTextField *twoFingerNoiseLevelText;
+    IBOutlet NSButton *EnabletwoFingersHorizScroll;
+    IBOutlet NSButton *EnabletwoFingersVertScroll;
+    IBOutlet NSSlider *twoFingersVertScroll_slide;
+    // Three & Four Fingers
+    IBOutlet NSSlider *ThreeFingersDragTime_slide;
+    IBOutlet NSButton *EnableThreeFingerDrag;
+    IBOutlet NSButton *EnableThreeFingerDragFiltering;
+    IBOutlet NSTextField *EnableThreeFingerDragFiltering_Text;
+    // Five Fingers
+    IBOutlet NSButton *EnableFiveFingersScreenLock;
+    IBOutlet NSButton *EnableFiveFingersSleep;
     
-	IBOutlet NSPopUpButton * cTrigger;
+    
+    IBOutlet NSPopUpButton * cTrigger;
 }
 
 - (void) mainViewDidLoad;
@@ -45,6 +65,18 @@
 - (void) didUnselect;
 
 - (IBAction) SlideTwoFingersTapAction: (id) sender;
+- (IBAction) TextTwoFingersTapAction: (id) sender;
+- (IBAction) EnableTwoFingersTapAction: (id) sender;
+- (IBAction) EnableOneFingerTapAction: (id) sender;
+- (IBAction) SlideOneFingerTapAction: (id) sender;
+- (IBAction) TextOneFingerTapAction: (id) sender;
+- (IBAction) EnableTwoFingersTapFilteringAction: (id) sender;
+- (IBAction) EnableThreeFingersDragAction: (id) sender;
+- (IBAction) EnableThreeFingersTapFilteringAction: (id) sender;
+- (IBAction) oneFingerTapFilteringAction: (id) sender;
+- (IBAction) EnableFiveFingersScreenLockAction: (id) sender;
+- (IBAction) EnableFiveFingersSleepAction: (id) sender;
+- (IBAction) GenerateInfoPlistParams: (id) sender;
 
 - (IBAction) SlideSpeedXAction: (id) sender;
 - (IBAction) SlideSpeedYAction: (id) sender;

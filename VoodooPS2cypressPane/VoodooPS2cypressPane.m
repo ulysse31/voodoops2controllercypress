@@ -122,9 +122,45 @@ int getBoolean (const char * key, io_service_t io_service)
 	}	
 	dict=CFDictionaryCreateMutable(NULL,0, &kCFTypeDictionaryKeyCallBacks ,NULL);
 	
-    [ twoFingersRightTapTime_slide setDoubleValue:getNumber("2FingersMaxTapTime", io_service) ];
-    [ twoFingersRightTapTime_text setStringValue:[NSString stringWithFormat:@"%d", getNumber("2FingersMaxTapTime", io_service)] ];
+    [ twoFingersRightTapTime_slide setDoubleValue:getNumber("Cypress2FingerMaxTapTime", io_service) ];
+    [ twoFingersRightTapTime_text setStringValue:[NSString stringWithFormat:@"%d", getNumber("Cypress2FingerMaxTapTime", io_service)] ];
+    [oneFingerRightTapTime_slide setDoubleValue:getNumber("Cypress1FingerMaxTapTime", io_service)];
+    [oneFingerRightTapTime_text setStringValue:[NSString stringWithFormat:@"%d", getNumber("Cypress1FingerMaxTapTime", io_service)] ];
+    [EnableOneFingerTapping setState:getBoolean("Clicking", io_service) ];
 
+    int tmp;
+    tmp = getNumber("CypressFiveFingerScreenLock", io_service);
+    [EnableFiveFingersScreenLock setState:(tmp != 0 ? NSOnState : NSOffState) ];
+    tmp = getNumber("CypressFiveFingerSleep", io_service);
+    [EnableFiveFingersSleep setState:(tmp != 0 ? NSOnState : NSOffState) ];
+    tmp = getNumber("Cypress2FingerFiltering", io_service);
+    [EnabletwoFingersRightTapFiltering setState:(tmp != 0 ? NSOnState : NSOffState)];
+    if (tmp != 0)
+        [twoFingerNoiseLevelText setEnabled:YES ];
+    else
+        [twoFingerNoiseLevelText setEnabled:NO ];
+    [twoFingerNoiseLevelText setStringValue:[NSString stringWithFormat:@"%d", tmp] ];
+    tmp = getNumber("CypressDragPressureAverage", io_service);
+    [oneFingerDragFiltering setState:(tmp != 0 ? NSOnState : NSOffState)];
+    if (tmp != 0)
+        [oneFingerDragFiltering_Text setEnabled:YES ];
+    else
+        [oneFingerDragFiltering_Text setEnabled:NO ];
+    [oneFingerDragFiltering_Text setStringValue:[NSString stringWithFormat:@"%d", tmp] ];
+
+    
+    [EnabletwoFingersHorizScroll setState:getBoolean("TrackpadHorizScroll", io_service)];
+    [EnabletwoFingersVertScroll setState:getBoolean("TrackpadScroll", io_service)];
+    [EnableThreeFingerDrag setState:(getNumber("CypressThreeFingerDrag", io_service) != 0 ? NSOnState : NSOffState)];
+    tmp = getNumber("Cypress3FingerFiltering", io_service);
+    [EnableThreeFingerDragFiltering setState:(tmp != 0 ? NSOnState : NSOffState)];
+    if (tmp != 0)
+        [EnableThreeFingerDragFiltering_Text setEnabled:YES ];
+    else
+        [EnableThreeFingerDragFiltering_Text setEnabled:NO ];
+    [EnableThreeFingerDragFiltering_Text setStringValue:[NSString stringWithFormat:@"%d", tmp] ];
+    
+    
 	[speedSliderX setDoubleValue:101-getNumber("DivisorX", io_service)];
     [speedSliderY setDoubleValue:101-getNumber("DivisorY", io_service)];
 	[maxTapTimeSlider setDoubleValue:getLongNumber("MaxTapTime", io_service)!=0?
@@ -220,15 +256,91 @@ int getBoolean (const char * key, io_service_t io_service)
 	return ;
 }
 
+- (void)GenerateInfoPlistParams
+{
+    
+}
+
+- (IBAction) EnableFiveFingersScreenLockAction: (id) sender
+{
+    sendNumber("CypressFiveFingerScreenLock", ( EnableFiveFingersScreenLock.state == NSOnState ?  0x1 : 0x0 ), io_service);
+}
+
+- (IBAction) EnableFiveFingersSleepAction: (id) sender
+{
+    sendNumber("CypressFiveFingerSleep", ( EnableFiveFingersSleep.state == NSOnState ?  0x1 : 0x0 ), io_service);
+}
+
+- (IBAction) EnableThreeFingersDragAction: (id) sender
+{
+    sendNumber("CypressThreeFingerDrag", ( EnableThreeFingerDrag.state == NSOnState ?  0x1 : 0x0 ), io_service);
+}
+
+- (IBAction) EnableThreeFingersTapFilteringAction: (id) sender
+{
+    sendNumber("Cypress3FingerFiltering", ( EnableThreeFingerDragFiltering.state == NSOnState ?  [EnableThreeFingerDragFiltering_Text intValue] : 0x0 ), io_service);
+    if (EnableThreeFingerDragFiltering.state == NSOnState)
+        [EnableThreeFingerDragFiltering_Text setEnabled:YES ];
+    else
+        [EnableThreeFingerDragFiltering_Text setEnabled:NO ];
+}
+
+- (IBAction) EnableTwoFingersTapFilteringAction: (id) sender
+{
+    sendNumber("Cypress2FingerFiltering", ( EnabletwoFingersRightTapFiltering.state == NSOnState ?  [twoFingerNoiseLevelText intValue] : 0x0 ), io_service);
+    if (EnabletwoFingersRightTapFiltering.state == NSOnState)
+        [twoFingerNoiseLevelText setEnabled:YES ];
+    else
+        [twoFingerNoiseLevelText setEnabled:NO ];
+}
+
+- (IBAction) oneFingerTapFilteringAction: (id) sender
+{
+    sendNumber("CypressDragPressureAverage", ( oneFingerDragFiltering.state == NSOnState ?  [oneFingerDragFiltering_Text intValue] : 0x0 ), io_service);
+    if (oneFingerDragFiltering.state == NSOnState)
+        [oneFingerDragFiltering_Text setEnabled:YES ];
+    else
+        [oneFingerDragFiltering_Text setEnabled:NO ];
+}
+
+
+- (IBAction) EnableTwoFingersTapAction: (id) sender
+{
+    sendNumber("CypressTwoFingerRightClick", ( EnabletwoFingersRightTap.state == NSOnState ?  0x1 : 0x0 ), io_service);
+}
+
+- (IBAction) EnableOneFingerTapAction: (id) sender
+{
+    sendNumber("Clicking", (EnableOneFingerTapping.state == NSOnState ? 0x1 : 0x0 ), io_service);
+ }
+
+- (IBAction) SlideOneFingerTapAction: (id) sender
+{
+    int tmp = [oneFingerRightTapTime_slide intValue ];
+    oneFingerRightTapTime_text.stringValue = [NSString stringWithFormat:@"%d", tmp];
+    sendNumber("Cypress1FingerMaxTapTime", tmp, io_service);
+}
+
+- (IBAction) TextOneFingerTapAction: (id) sender
+{
+    int tmp = (int)[ oneFingerRightTapTime_text doubleValue ];
+    oneFingerRightTapTime_slide.intValue = tmp;
+    sendNumber("Cypress1FingerMaxTapTime", tmp, io_service);
+}
+
 
 - (IBAction) SlideTwoFingersTapAction: (id) sender
 {
     int tmp = [twoFingersRightTapTime_slide intValue ];
     twoFingersRightTapTime_text.stringValue = [NSString stringWithFormat:@"%d", tmp];
-    sendNumber("2FingersMaxTapTime", tmp, io_service);
-//    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
-//    [alert setMessageText:@"Hi there."];
-//    [alert runModal];
+    sendNumber("Cypress2FingerMaxTapTime", tmp, io_service);
+}
+
+- (IBAction) TextTwoFingersTapAction: (id) sender
+{
+    int tmp = (int)[ twoFingersRightTapTime_text doubleValue ];
+    twoFingersRightTapTime_slide.intValue = tmp;
+    sendNumber("Cypress2FingerMaxTapTime", tmp, io_service);
 }
 
 

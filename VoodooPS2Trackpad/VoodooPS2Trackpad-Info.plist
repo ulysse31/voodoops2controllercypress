@@ -374,21 +374,21 @@
 			    <key>DisableDevice</key>
 			    <false/>
 			    <key>CypressTwoFingerRightClick</key>
-			    <true/>
+			    <integer>1</integer>
 			    <key>CypressThreeFingerDrag</key>
-			    <true/>
+			    <integer>1</integer>
 			    <key>CypressFourFingerHorizSwipeGesture</key>
-			    <true/>
+			    <integer>1</integer>
 			    <key>CypressFourFingerVertSwipeGesture</key>
-			    <true/>
+			    <integer>1</integer>
 			    <key>CypressFiveFingerScreenLock</key>
-			    <true/>
+			    <integer>1</integer>
 			    <key>CypressFiveFingerSleep</key>
-			    <true/>
+			    <integer>1</integer>
 			    <key>Cypress1FingerMaxTapTime</key>
 			    <integer>200</integer>
 			    <key>Cypress2FingerMaxTapTime</key>
-			    <integer>200</integer>
+			    <integer>120</integer>
 			    <key>Cypress3FingerMaxTapTime</key>
 			    <integer>200</integer>
 			    <key>Cypress4FingerMaxTapTime</key>

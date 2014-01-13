@@ -211,6 +211,7 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _fourFingersMaxCount	= 3;
     _onefingervdivider		= 2;
     _onefingerhdivider		= 2;
+    _twoFingerDivider		= 65536;
     _twofingervdivider		= 2;
     _twofingerhdivider		= 2;
     _threefingervdivider	= 1;
@@ -259,7 +260,7 @@ bool ApplePS2CypressTouchPad::init(OSDictionary * dict)
     _fiveFingerSleep			= true;
     _pressureFiltering			= 20;
     _twoFingerFiltering			= 1;
-    _threeFingerFiltering		= 50;
+    _threeFingerFiltering		= 20;
     _fourFingerFiltering		= 20;
 
     _packetLength = 8; // default len
@@ -360,12 +361,17 @@ bool ApplePS2CypressTouchPad::start( IOService * provider )
     setProperty("TrackpadHorizScroll", enabledProperty, 
        sizeof(enabledProperty) * 8);
 
-//     setProperty("CypressFourFingerHorizSwipeGesture", enabledProperty, 
-//        sizeof(enabledProperty) * 8);
-//     setProperty("CypressFourFingerVertSwipeGesture", enabledProperty, 
-//        sizeof(enabledProperty) * 8);
-//     setProperty("CypressThreeFingerDrag", enabledProperty, 
-//        sizeof(enabledProperty) * 8);
+    setProperty("CypressFourFingerHorizSwipeGesture", disabledProperty, 
+		sizeof(disabledProperty) * 8);
+    setProperty("CypressFourFingerVertSwipeGesture", disabledProperty, 
+        sizeof(disabledProperty) * 8);
+    setProperty("CypressFiveFingerScreenLock", disabledProperty, 
+        sizeof(disabledProperty) * 8);
+    setProperty("CypressFiveFingerSleep", disabledProperty, 
+        sizeof(disabledProperty) * 8);
+
+    setProperty("CypressThreeFingerDrag", disabledProperty, 
+        sizeof(disabledProperty) * 8);
 //        float	i = 200;
 //     setProperty("1FingersMaxTapTime", i, sizeof(i) * 8);
 //     setProperty("2FingersMaxTapTime", i, sizeof(i) * 8);
@@ -750,10 +756,7 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
 
   if (scrollspeed)
     {
-      float tmp = (float)(scrollspeed->unsigned32BitValue());
-      tmp = (((196608.0f - tmp) / 65536.0f) + 1.0f);
-      _twofingervdivider = tmp;
-      _twofingerhdivider = tmp;
+      _twoFingerDivider = (float)(scrollspeed->unsigned32BitValue());
       setProperty("HIDTrackpadScrollAcceleration", scrollspeed);
     }
   if (dragPressureAverage)
@@ -1282,8 +1285,8 @@ void				ApplePS2CypressTouchPad::cypressProcessPacket(UInt8 *pkt)
 	      ydiff = y - _yscrollpos;
 	      _xscrollpos = x;
 	      _yscrollpos = y;
-	      xdiff = (int)((float)((float)xdiff / (float)_twofingerhdivider));
-	      ydiff = (int)((float)((float)ydiff / (float)_twofingervdivider));
+	      xdiff = (int)((float)((float)xdiff / (float)(((196608.0f - (float)_twoFingerDivider) / (_twoFingerFiltering ? 65536.0f : 32768.0f)) + 1.0f)));
+	      ydiff = (int)((float)((float)ydiff / (float)(((196608.0f - (float)_twoFingerDivider) / (_twoFingerFiltering ? 65536.0f : 32768.0f)) + 1.0f)));
 	      DEBUG_LOG("CYPRESS: Sending Scroll event: %d,%d\n", xdiff, ydiff);
 	      if (_trackpadHorizScroll && abs(xdiff) > abs(ydiff))
 		dispatchScrollWheelEventX(0, -xdiff, 0, now_abs);
