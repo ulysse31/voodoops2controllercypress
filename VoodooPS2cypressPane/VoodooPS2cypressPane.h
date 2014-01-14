@@ -37,6 +37,8 @@
     IBOutlet NSButton *EnableOneFingerTapping;
     IBOutlet NSButton *oneFingerDragFiltering;
     IBOutlet NSTextField *oneFingerDragFiltering_Text;
+    IBOutlet NSTextField *oneFingerDragPressure;
+
     // Two Fingers
     IBOutlet NSTextField *twoFingersRightTapTime_text;
     IBOutlet NSSlider *twoFingersRightTapTime_slide;
@@ -52,17 +54,20 @@
     IBOutlet NSButton *EnableThreeFingerDrag;
     IBOutlet NSButton *EnableThreeFingerDragFiltering;
     IBOutlet NSTextField *EnableThreeFingerDragFiltering_Text;
+    IBOutlet NSButton *EnableFourFingerHorizSwipe;
+    IBOutlet NSButton *EnableFourFingerVertSwipe;
     // Five Fingers
     IBOutlet NSButton *EnableFiveFingersScreenLock;
     IBOutlet NSButton *EnableFiveFingersSleep;
-    
-    
+    // Info.plist
+    IBOutlet NSTextView *InfoPlistText;
     IBOutlet NSPopUpButton * cTrigger;
 }
 
 - (void) mainViewDidLoad;
 - (void) awakeFromNib;
 - (void) didUnselect;
+- (void) GenerateInfoPlistParams;
 
 - (IBAction) SlideTwoFingersTapAction: (id) sender;
 - (IBAction) TextTwoFingersTapAction: (id) sender;
@@ -76,7 +81,8 @@
 - (IBAction) oneFingerTapFilteringAction: (id) sender;
 - (IBAction) EnableFiveFingersScreenLockAction: (id) sender;
 - (IBAction) EnableFiveFingersSleepAction: (id) sender;
-- (IBAction) GenerateInfoPlistParams: (id) sender;
+- (IBAction) EnableFourFingersVertSwipes: (id) sender;
+- (IBAction) EnableFourFingersHorizSwipes: (id) sender;
 
 - (IBAction) SlideSpeedXAction: (id) sender;
 - (IBAction) SlideSpeedYAction: (id) sender;

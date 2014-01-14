@@ -106,6 +106,35 @@ int getBoolean (const char * key, io_service_t io_service)
 
 @implementation VoodooPS2Pref
 
+- (void) GenerateInfoPlistParams
+{
+    NSString *s = [NSString stringWithFormat: @"<key>CypressTwoFingerRightClick</key>\n" ];
+    s = [ s stringByAppendingString:(EnabletwoFingersRightTap.state == NSOnState ? @"<true/>\n" : @"<false/>\n")];
+    s = [ s stringByAppendingString:@"<key>CypressThreeFingerDrag</key>\n" ];
+    s = [ s stringByAppendingString:(EnableThreeFingerDrag.state == NSOnState ? @"<true/>\n" : @"<false/>\n")];
+    s = [ s stringByAppendingString:@"<key>CypressFourFingerHorizSwipeGesture</key>\n" ];
+    s = [ s stringByAppendingString:(EnableFourFingerHorizSwipe.state == NSOnState ? @"<true/>\n" : @"<false/>\n")];
+    s = [ s stringByAppendingString:@"<key>CypressFourFingerVertSwipeGesture</key>\n" ];
+    s = [ s stringByAppendingString:(EnableFourFingerVertSwipe.state == NSOnState ? @"<true/>\n" : @"<false/>\n")];
+    s = [ s stringByAppendingString:@"<key>CypressFiveFingerScreenLock</key>\n" ];
+    s = [ s stringByAppendingString:(EnableFiveFingersScreenLock.state == NSOnState ? @"<true/>\n" : @"<false/>\n")];
+    s = [ s stringByAppendingString:@"<key>CypressFiveFingerSleep</key>\n" ];
+    s = [ s stringByAppendingString:(EnableFiveFingersSleep.state == NSOnState ? @"<true/>\n" : @"<false/>\n")];
+    s = [ s stringByAppendingString:@"<key>Cypress1FingerMaxTapTime</key>\n" ];
+    s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , oneFingerRightTapTime_slide.intValue ] ];
+    s = [ s stringByAppendingString:@"<key>Cypress2FingerMaxTapTime</key>\n" ];
+    s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , twoFingersRightTapTime_text.intValue ] ];
+    s = [ s stringByAppendingString:@"<key>CypressDragPressureAverage</key>\n" ];
+    s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , oneFingerDragPressure.intValue ] ];
+    s = [ s stringByAppendingString:@"<key>Cypress5FingerScreenLockTimer</key>\n\
+    <integer>800</integer>\n\
+    <key>Cypress5FingerSleepTimer</key>\n\
+         <integer>3000</integer>\n" ];
+    s = [ s stringByAppendingString:@"<key>CypressPressureFiltering</key>\n" ];
+    s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , (oneFingerDragFiltering.state == NSOnState ? oneFingerDragFiltering_Text.intValue : 0)] ];
+    [ InfoPlistText setString:s];
+}
+
 - (void) mainViewDidLoad
 {
 }
@@ -131,8 +160,9 @@ int getBoolean (const char * key, io_service_t io_service)
     int tmp;
     tmp = getNumber("CypressFiveFingerScreenLock", io_service);
     [EnableFiveFingersScreenLock setState:(tmp != 0 ? NSOnState : NSOffState) ];
-    tmp = getNumber("CypressFiveFingerSleep", io_service);
-    [EnableFiveFingersSleep setState:(tmp != 0 ? NSOnState : NSOffState) ];
+//    tmp = getNumber("CypressFiveFingerSleep", io_service);
+//    [EnableFiveFingersSleep setState:(tmp != 0 ? NSOnState : NSOffState) ];
+        [EnableFiveFingersSleep setState:getBoolean("CypressFiveFingerSleep", io_service) ];
     tmp = getNumber("Cypress2FingerFiltering", io_service);
     [EnabletwoFingersRightTapFiltering setState:(tmp != 0 ? NSOnState : NSOffState)];
     if (tmp != 0)
@@ -140,7 +170,7 @@ int getBoolean (const char * key, io_service_t io_service)
     else
         [twoFingerNoiseLevelText setEnabled:NO ];
     [twoFingerNoiseLevelText setStringValue:[NSString stringWithFormat:@"%d", tmp] ];
-    tmp = getNumber("CypressDragPressureAverage", io_service);
+    tmp = getNumber("CypressPressureFiltering", io_service);
     [oneFingerDragFiltering setState:(tmp != 0 ? NSOnState : NSOffState)];
     if (tmp != 0)
         [oneFingerDragFiltering_Text setEnabled:YES ];
@@ -151,7 +181,8 @@ int getBoolean (const char * key, io_service_t io_service)
     
     [EnabletwoFingersHorizScroll setState:getBoolean("TrackpadHorizScroll", io_service)];
     [EnabletwoFingersVertScroll setState:getBoolean("TrackpadScroll", io_service)];
-    [EnableThreeFingerDrag setState:(getNumber("CypressThreeFingerDrag", io_service) != 0 ? NSOnState : NSOffState)];
+    tmp = getNumber("CypressThreeFingerDrag", io_service);
+    [EnableThreeFingerDrag setState:(tmp != 0 ? NSOnState : NSOffState)];
     tmp = getNumber("Cypress3FingerFiltering", io_service);
     [EnableThreeFingerDragFiltering setState:(tmp != 0 ? NSOnState : NSOffState)];
     if (tmp != 0)
@@ -160,54 +191,6 @@ int getBoolean (const char * key, io_service_t io_service)
         [EnableThreeFingerDragFiltering_Text setEnabled:NO ];
     [EnableThreeFingerDragFiltering_Text setStringValue:[NSString stringWithFormat:@"%d", tmp] ];
     
-    
-	[speedSliderX setDoubleValue:101-getNumber("DivisorX", io_service)];
-    [speedSliderY setDoubleValue:101-getNumber("DivisorY", io_service)];
-	[maxTapTimeSlider setDoubleValue:getLongNumber("MaxTapTime", io_service)!=0?
-	 getLongNumber("MaxTapTime", io_service)/2500000.0:40];
-	[fingerZSlider setDoubleValue:getNumber("FingerZ", io_service)];
-	[tedgeSlider setDoubleValue:getNumber("TopEdge", io_service)/70.0];
-	[bedgeSlider setDoubleValue:getNumber("BottomEdge", io_service)/70.0];
-	[ledgeSlider setDoubleValue:getNumber("LeftEdge", io_service)/70.0];
-	[redgeSlider setDoubleValue:getNumber("RightEdge", io_service)/70.0];
-	[centerXSlider setDoubleValue:getNumber("CenterX", io_service)/70.0];
-	[centerYSlider setDoubleValue:getNumber("CenterY", io_service)/70.0];
-	[hscrollSlider setDoubleValue:getNumber("HorizontalScrollDivisor", io_service)?
-	 101-getNumber("HorizontalScrollDivisor", io_service):71];
-	[hscrollSlider setEnabled:getNumber("HorizontalScrollDivisor", io_service)!=0];
-	[vscrollSlider setDoubleValue:getNumber("VerticalScrollDivisor", io_service)?
-	 101-getNumber("VerticalScrollDivisor", io_service):71];
-	[vscrollSlider setEnabled:getNumber("VerticalScrollDivisor", io_service)!=0];
-	[cscrollSlider setDoubleValue:getNumber("CircularScrollDivisor", io_service)?
-	 101-getNumber("CircularScrollDivisor", io_service):71];
-	[cscrollSlider setEnabled:getNumber("CircularScrollDivisor", io_service)!=0];
-	[cTrigger setEnabled:getNumber("CircularScrollDivisor", io_service)!=0];
-	[cTrigger selectItemAtIndex: getNumber("CircularScrollTrigger", io_service)-1];
-	[mhSlider setDoubleValue:getNumber("MultiFingerHorizontalDivisor", io_service)?
-	 101-getNumber("MultiFingerHorizontalDivisor", io_service):71];
-	[mhSlider setEnabled:getNumber("MultiFingerHorizontalDivisor", io_service)!=0];
-	[mvSlider setDoubleValue:getNumber("MultiFingerVerticalDivisor", io_service)?
-	 101-getNumber("MultiFingerVerticalDivisor", io_service):71];
-	[mvSlider setEnabled:getNumber("MultiFingerVerticalDivisor", io_service)!=0];
-	[mwSlider setDoubleValue:getNumber("MultiFingerWLimit", io_service)!=17?
-	 (getNumber("MultiFingerWLimit", io_service)-4)*(100.0/12):(100.0/6)];
-	[mwSlider setEnabled:getNumber("MultiFingerWLimit", io_service)!=17];
-	
-	[stabTapButton setState:getBoolean("StabilizeTapping", io_service)];
-	[hRateButton setState:getBoolean("ExtendedWmode", io_service)];
-	[hScrollButton setState:getNumber("HorizontalScrollDivisor", io_service)!=0];
-	[vScrollButton setState:getNumber("VerticalScrollDivisor", io_service)!=0];
-	[hScrollButton setState:getNumber("HorizontalScrollDivisor", io_service)!=0];
-	[cScrollButton setState:getNumber("CircularScrollDivisor", io_service)!=0];
-	[vsScrollButton setState:getBoolean("StickyVerticalScrolling", io_service)];
-	[vsScrollButton setEnabled:getBoolean("VerticalScrollDivisor", io_service)!=0];
-	[hsScrollButton setState:getBoolean("StickyHorizontalScrolling", io_service)];
-	[hsScrollButton setEnabled:getBoolean("HorizontalScrollDivisor", io_service)!=0];
-	[msButton setState:getBoolean("StickyMultiFingerScrolling", io_service)];
-
-	[hmScrollButton setState:getNumber("MultiFingerHorizontalDivisor", io_service)!=0];
-	[vmScrollButton setState:getNumber("MultiFingerVerticalDivisor", io_service)!=0];
-	[adwButton setState:getNumber("MultiFingerWLimit", io_service)!=17];
 }
 
 - (void)didUnselect
@@ -256,25 +239,32 @@ int getBoolean (const char * key, io_service_t io_service)
 	return ;
 }
 
-- (void)GenerateInfoPlistParams
-{
-    
-}
-
 - (IBAction) EnableFiveFingersScreenLockAction: (id) sender
 {
-    sendNumber("CypressFiveFingerScreenLock", ( EnableFiveFingersScreenLock.state == NSOnState ?  0x1 : 0x0 ), io_service);
+    sendBoolean("CypressFiveFingerScreenLock", EnableFiveFingersScreenLock.state, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) EnableFiveFingersSleepAction: (id) sender
 {
-    sendNumber("CypressFiveFingerSleep", ( EnableFiveFingersSleep.state == NSOnState ?  0x1 : 0x0 ), io_service);
+    sendBoolean("CypressFiveFingerSleep", EnableFiveFingersSleep.state, io_service);
 }
 
 - (IBAction) EnableThreeFingersDragAction: (id) sender
 {
-    sendNumber("CypressThreeFingerDrag", ( EnableThreeFingerDrag.state == NSOnState ?  0x1 : 0x0 ), io_service);
+    sendBoolean("CypressThreeFingerDrag", EnableThreeFingerDrag.state, io_service);
 }
+
+- (IBAction) EnableFourFingersVertSwipes: (id) sender
+{
+    sendBoolean("CypressFourFingerVertSwipeGesture", EnableFourFingerVertSwipe.state, io_service);
+}
+
+- (IBAction) EnableFourFingersHorizSwipes: (id) sender
+{
+    sendBoolean("CypressFourFingerHorizSwipeGesture", EnableFourFingerHorizSwipe.state, io_service);
+}
+
 
 - (IBAction) EnableThreeFingersTapFilteringAction: (id) sender
 {
@@ -296,23 +286,28 @@ int getBoolean (const char * key, io_service_t io_service)
 
 - (IBAction) oneFingerTapFilteringAction: (id) sender
 {
-    sendNumber("CypressDragPressureAverage", ( oneFingerDragFiltering.state == NSOnState ?  [oneFingerDragFiltering_Text intValue] : 0x0 ), io_service);
+    sendNumber("CypressPressureFiltering", ( oneFingerDragFiltering.state == NSOnState ?  [oneFingerDragFiltering_Text intValue] : 0x0 ), io_service);
     if (oneFingerDragFiltering.state == NSOnState)
         [oneFingerDragFiltering_Text setEnabled:YES ];
     else
         [oneFingerDragFiltering_Text setEnabled:NO ];
 }
 
+- (IBAction) oneFingerDragPressureAction: (id) sender
+{
+    sendNumber("CypressDragPressureAverage", oneFingerDragPressure.intValue, io_service);
+}
+
 
 - (IBAction) EnableTwoFingersTapAction: (id) sender
 {
-    sendNumber("CypressTwoFingerRightClick", ( EnabletwoFingersRightTap.state == NSOnState ?  0x1 : 0x0 ), io_service);
+    sendBoolean("CypressTwoFingerRightClick", EnabletwoFingersRightTap.state, io_service);
 }
 
 - (IBAction) EnableOneFingerTapAction: (id) sender
 {
     sendNumber("Clicking", (EnableOneFingerTapping.state == NSOnState ? 0x1 : 0x0 ), io_service);
- }
+}
 
 - (IBAction) SlideOneFingerTapAction: (id) sender
 {
@@ -342,7 +337,6 @@ int getBoolean (const char * key, io_service_t io_service)
     twoFingersRightTapTime_slide.intValue = tmp;
     sendNumber("Cypress2FingerMaxTapTime", tmp, io_service);
 }
-
 
 
 - (IBAction) SlideSpeedXAction: (id) sender

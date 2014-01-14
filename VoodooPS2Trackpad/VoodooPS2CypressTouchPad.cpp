@@ -361,17 +361,16 @@ bool ApplePS2CypressTouchPad::start( IOService * provider )
     setProperty("TrackpadHorizScroll", enabledProperty, 
        sizeof(enabledProperty) * 8);
 
-    setProperty("CypressFourFingerHorizSwipeGesture", disabledProperty, 
-		sizeof(disabledProperty) * 8);
-    setProperty("CypressFourFingerVertSwipeGesture", disabledProperty, 
-        sizeof(disabledProperty) * 8);
-    setProperty("CypressFiveFingerScreenLock", disabledProperty, 
-        sizeof(disabledProperty) * 8);
-    setProperty("CypressFiveFingerSleep", disabledProperty, 
-        sizeof(disabledProperty) * 8);
-
-    setProperty("CypressThreeFingerDrag", disabledProperty, 
-        sizeof(disabledProperty) * 8);
+    setProperty("CypressFourFingerHorizSwipeGesture", ( _fourFingerHorizSwipeGesture ? enabledProperty : disabledProperty),
+		sizeof(enabledProperty) * 8);
+    setProperty("CypressFourFingerVertSwipeGesture", ( _fourFingerVertSwipeGesture ? enabledProperty : disabledProperty),
+        sizeof(enabledProperty) * 8);
+    setProperty("CypressFiveFingerScreenLock", ( _fiveFingerScreenLock ? enabledProperty : disabledProperty),
+        sizeof(enabledProperty) * 8);
+    setProperty("CypressFiveFingerSleep", (_fiveFingerSleep ? enabledProperty : disabledProperty),
+        sizeof(enabledProperty) * 8);
+    setProperty("CypressThreeFingerDrag", (_threeFingerDrag ? enabledProperty : disabledProperty),
+        sizeof(enabledProperty) * 8);
 //        float	i = 200;
 //     setProperty("1FingersMaxTapTime", i, sizeof(i) * 8);
 //     setProperty("2FingersMaxTapTime", i, sizeof(i) * 8);
@@ -676,19 +675,20 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
   OSNumber * threefingermaxtaptime = OSDynamicCast( OSNumber, dict->getObject("Cypress3FingerMaxTapTime") );
   OSNumber * fourfingermaxtaptime = OSDynamicCast( OSNumber, dict->getObject("Cypress4FingerMaxTapTime") );
   OSNumber * fivefingermaxtaptime = OSDynamicCast( OSNumber, dict->getObject("Cypress5FingerMaxTapTime") );
-  OSNumber * fourFingerHorizSwipeGesture = OSDynamicCast( OSNumber, dict->getObject("CypressFourFingerHorizSwipeGesture") );
-  OSNumber * fourFingerVertSwipeGesture = OSDynamicCast( OSNumber, dict->getObject("CypressFourFingerVertSwipeGesture") );
-  OSNumber * twoFingerRightClick = OSDynamicCast( OSNumber, dict->getObject("CypressTwoFingerRightClick") );
-  OSNumber * threeFingerDrag = OSDynamicCast( OSNumber, dict->getObject("CypressThreeFingerDrag"));
   OSNumber * dragPressureAverage = OSDynamicCast( OSNumber, dict->getObject("CypressDragPressureAverage"));
-  OSNumber * fiveFingerSleep = OSDynamicCast( OSNumber, dict->getObject("CypressFiveFingerSleep"));
-  OSNumber * fiveFingerScreenLock = OSDynamicCast( OSNumber, dict->getObject("CypressFiveFingerScreenLock"));
   OSNumber * fiveFingerSleepTimer = OSDynamicCast( OSNumber, dict->getObject("Cypress5FingerSleepTimer"));
   OSNumber * fiveFingerScreenLockTimer = OSDynamicCast( OSNumber, dict->getObject("Cypress5FingerScreenLockTimer"));
   OSNumber * pressureFiltering = OSDynamicCast( OSNumber, dict->getObject("CypressPressureFiltering"));
   OSNumber * twoFingerFiltering = OSDynamicCast( OSNumber, dict->getObject("Cypress2FingerFiltering"));
   OSNumber * threeFingerFiltering = OSDynamicCast( OSNumber, dict->getObject("Cypress3FingerFiltering"));
   OSNumber * fourFingerFiltering = OSDynamicCast( OSNumber, dict->getObject("Cypress4FingerFiltering"));
+  OSBoolean * fourFingerHorizSwipeGesture = OSDynamicCast( OSBoolean, dict->getObject("CypressFourFingerHorizSwipeGesture") );
+  OSBoolean * fourFingerVertSwipeGesture = OSDynamicCast( OSBoolean, dict->getObject("CypressFourFingerVertSwipeGesture") );
+  OSBoolean * twoFingerRightClick = OSDynamicCast( OSBoolean, dict->getObject("CypressTwoFingerRightClick") );
+  OSBoolean * threeFingerDrag = OSDynamicCast( OSBoolean, dict->getObject("CypressThreeFingerDrag"));
+  OSBoolean * fiveFingerSleep = OSDynamicCast( OSBoolean, dict->getObject("CypressFiveFingerSleep"));
+  OSBoolean * fiveFingerScreenLock = OSDynamicCast( OSBoolean, dict->getObject("CypressFiveFingerScreenLock"));
+
 
 #ifdef DEBUG
   OSCollectionIterator* iter = OSCollectionIterator::withCollection( dict );
@@ -789,36 +789,38 @@ IOReturn	ApplePS2CypressTouchPad::setParamProperties( OSDictionary * dict )
       _fivefingermaxtaptime = ((fivefingermaxtaptime->unsigned32BitValue()) * 1000000);
       setProperty("Cypress3FingerMaxTapTime", fivefingermaxtaptime);
     }
+
   if (fourFingerHorizSwipeGesture)
     {
-      _fourFingerHorizSwipeGesture = fourFingerHorizSwipeGesture->unsigned32BitValue() != 0 ? true : false;
-      setProperty("CypressFourFingerHorizSwipeGesture", fourFingerHorizSwipeGesture);
+      _fourFingerHorizSwipeGesture = fourFingerHorizSwipeGesture->isTrue();
+      setProperty("CypressFourFingerHorizSwipeGesture", fourFingerHorizSwipeGesture->isTrue());
     }
   if (fourFingerVertSwipeGesture)
     {
-      _fourFingerVertSwipeGesture = fourFingerVertSwipeGesture->unsigned32BitValue() != 0 ? true : false;
-      setProperty("CypressFourFingerVertSwipeGesture", fourFingerVertSwipeGesture);
+      _fourFingerVertSwipeGesture = fourFingerVertSwipeGesture->isTrue();
+      setProperty("CypressFourFingerVertSwipeGesture", fourFingerVertSwipeGesture->isTrue());
     }
   if (threeFingerDrag)
     {
-      _threeFingerDrag = threeFingerDrag->unsigned32BitValue() != 0 ? true : false;
-      setProperty("CypressThreeFingerDrag", threeFingerDrag);
+      _threeFingerDrag = threeFingerDrag->isTrue();
+      setProperty("CypressThreeFingerDrag", threeFingerDrag->isTrue());
     }
   if (twoFingerRightClick)
     {
-      _twoFingerRightClick = twoFingerRightClick->unsigned32BitValue() != 0 ? true : false;
-      setProperty("CypressTwoFingerRightClick", twoFingerRightClick);
+      _twoFingerRightClick = twoFingerRightClick->isTrue();
+      setProperty("CypressTwoFingerRightClick", twoFingerRightClick->isTrue());
     }
   if (fiveFingerScreenLock)
     {
-      _fiveFingerScreenLock = fiveFingerScreenLock->unsigned32BitValue() != 0 ? true : false;
-      setProperty("CypressFiveFingerScreenLock", fiveFingerScreenLock);
+      _fiveFingerScreenLock = fiveFingerScreenLock->isTrue();
+      setProperty("CypressFiveFingerScreenLock", fiveFingerScreenLock->isTrue());
     }
   if (fiveFingerSleep)
     {
-      _fiveFingerSleep = fiveFingerSleep->unsigned32BitValue() != 0 ? true : false;
-      setProperty("CypressFiveFingerSleep", fiveFingerSleep);
+      _fiveFingerSleep = fiveFingerSleep->isTrue();
+      setProperty("CypressFiveFingerSleep", fiveFingerSleep->isTrue());
     }
+
   if (fiveFingerSleepTimer)
     {
       _fivefingersleeptime = ((fiveFingerSleepTimer->unsigned32BitValue()) * 1000000);
