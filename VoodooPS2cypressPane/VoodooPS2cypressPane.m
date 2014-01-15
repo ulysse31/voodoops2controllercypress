@@ -124,14 +124,18 @@ int getBoolean (const char * key, io_service_t io_service)
     s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , oneFingerRightTapTime_slide.intValue ] ];
     s = [ s stringByAppendingString:@"<key>Cypress2FingerMaxTapTime</key>\n" ];
     s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , twoFingersRightTapTime_text.intValue ] ];
+    s = [ s stringByAppendingString:@"<key>Cypress3FingerMaxTapTime</key>\n<integer>200</integer>\n<key>Cypress4FingerMaxTapTime</key>\n<integer>50</integer>\n<key>Cypress5FingerMaxTapTime</key>\n<integer>200</integer>\n" ];
     s = [ s stringByAppendingString:@"<key>CypressDragPressureAverage</key>\n" ];
     s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , oneFingerDragPressure.intValue ] ];
-    s = [ s stringByAppendingString:@"<key>Cypress5FingerScreenLockTimer</key>\n\
-    <integer>800</integer>\n\
-    <key>Cypress5FingerSleepTimer</key>\n\
-         <integer>3000</integer>\n" ];
+    s = [ s stringByAppendingString:@"<key>Cypress5FingerScreenLockTimer</key>\n<integer>800</integer>\n<key>Cypress5FingerSleepTimer</key>\n<integer>3000</integer>\n" ];
     s = [ s stringByAppendingString:@"<key>CypressPressureFiltering</key>\n" ];
     s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , (oneFingerDragFiltering.state == NSOnState ? oneFingerDragFiltering_Text.intValue : 0)] ];
+    s = [ s stringByAppendingString:@"<key>Cypress2FingerFiltering</key>\n" ];
+    s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , twoFingerNoiseLevelText.intValue ] ];
+    s = [ s stringByAppendingString:@"<key>Cypress3FingerFiltering</key>\n" ];
+    s = [ s stringByAppendingString:[ NSString stringWithFormat:@"<integer>%d</integer>\n" , EnableThreeFingerDragFiltering_Text.intValue ] ];
+    s = [ s stringByAppendingString:@"<key>Cypress4FingerFiltering</key>\n" ];
+    s = [ s stringByAppendingString:@"<integer>20</integer>\n"];
     [ InfoPlistText setString:s];
 }
 
@@ -177,8 +181,7 @@ int getBoolean (const char * key, io_service_t io_service)
     else
         [oneFingerDragFiltering_Text setEnabled:NO ];
     [oneFingerDragFiltering_Text setStringValue:[NSString stringWithFormat:@"%d", tmp] ];
-
-    
+    [oneFingerDragPressure setStringValue:[ NSString stringWithFormat:@"%d", getNumber("CypressDragPressureAverage", io_service)] ];
     [EnabletwoFingersHorizScroll setState:getBoolean("TrackpadHorizScroll", io_service)];
     [EnabletwoFingersVertScroll setState:getBoolean("TrackpadScroll", io_service)];
     tmp = getNumber("CypressThreeFingerDrag", io_service);
@@ -190,7 +193,8 @@ int getBoolean (const char * key, io_service_t io_service)
     else
         [EnableThreeFingerDragFiltering_Text setEnabled:NO ];
     [EnableThreeFingerDragFiltering_Text setStringValue:[NSString stringWithFormat:@"%d", tmp] ];
-    
+
+    [self GenerateInfoPlistParams];
 }
 
 - (void)didUnselect
@@ -248,21 +252,25 @@ int getBoolean (const char * key, io_service_t io_service)
 - (IBAction) EnableFiveFingersSleepAction: (id) sender
 {
     sendBoolean("CypressFiveFingerSleep", EnableFiveFingersSleep.state, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) EnableThreeFingersDragAction: (id) sender
 {
     sendBoolean("CypressThreeFingerDrag", EnableThreeFingerDrag.state, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) EnableFourFingersVertSwipes: (id) sender
 {
     sendBoolean("CypressFourFingerVertSwipeGesture", EnableFourFingerVertSwipe.state, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) EnableFourFingersHorizSwipes: (id) sender
 {
     sendBoolean("CypressFourFingerHorizSwipeGesture", EnableFourFingerHorizSwipe.state, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 
@@ -273,6 +281,7 @@ int getBoolean (const char * key, io_service_t io_service)
         [EnableThreeFingerDragFiltering_Text setEnabled:YES ];
     else
         [EnableThreeFingerDragFiltering_Text setEnabled:NO ];
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) EnableTwoFingersTapFilteringAction: (id) sender
@@ -282,6 +291,7 @@ int getBoolean (const char * key, io_service_t io_service)
         [twoFingerNoiseLevelText setEnabled:YES ];
     else
         [twoFingerNoiseLevelText setEnabled:NO ];
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) oneFingerTapFilteringAction: (id) sender
@@ -291,22 +301,26 @@ int getBoolean (const char * key, io_service_t io_service)
         [oneFingerDragFiltering_Text setEnabled:YES ];
     else
         [oneFingerDragFiltering_Text setEnabled:NO ];
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) oneFingerDragPressureAction: (id) sender
 {
     sendNumber("CypressDragPressureAverage", oneFingerDragPressure.intValue, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 
 - (IBAction) EnableTwoFingersTapAction: (id) sender
 {
     sendBoolean("CypressTwoFingerRightClick", EnabletwoFingersRightTap.state, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) EnableOneFingerTapAction: (id) sender
 {
     sendNumber("Clicking", (EnableOneFingerTapping.state == NSOnState ? 0x1 : 0x0 ), io_service);
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) SlideOneFingerTapAction: (id) sender
@@ -314,6 +328,7 @@ int getBoolean (const char * key, io_service_t io_service)
     int tmp = [oneFingerRightTapTime_slide intValue ];
     oneFingerRightTapTime_text.stringValue = [NSString stringWithFormat:@"%d", tmp];
     sendNumber("Cypress1FingerMaxTapTime", tmp, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) TextOneFingerTapAction: (id) sender
@@ -321,6 +336,7 @@ int getBoolean (const char * key, io_service_t io_service)
     int tmp = (int)[ oneFingerRightTapTime_text doubleValue ];
     oneFingerRightTapTime_slide.intValue = tmp;
     sendNumber("Cypress1FingerMaxTapTime", tmp, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 
@@ -329,6 +345,7 @@ int getBoolean (const char * key, io_service_t io_service)
     int tmp = [twoFingersRightTapTime_slide intValue ];
     twoFingersRightTapTime_text.stringValue = [NSString stringWithFormat:@"%d", tmp];
     sendNumber("Cypress2FingerMaxTapTime", tmp, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 - (IBAction) TextTwoFingersTapAction: (id) sender
@@ -336,9 +353,13 @@ int getBoolean (const char * key, io_service_t io_service)
     int tmp = (int)[ twoFingersRightTapTime_text doubleValue ];
     twoFingersRightTapTime_slide.intValue = tmp;
     sendNumber("Cypress2FingerMaxTapTime", tmp, io_service);
+    [self GenerateInfoPlistParams];
 }
 
 
+
+//
+// DEPRECATED
 - (IBAction) SlideSpeedXAction: (id) sender
 {
 	sendNumber("DivisorX", 101-[speedSliderX doubleValue], io_service);

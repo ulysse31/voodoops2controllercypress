@@ -327,6 +327,9 @@
                                                             <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                         </textFieldCell>
+                                                        <connections>
+                                                            <action selector="EnableThreeFingersTapFilteringAction:" target="-2" id="dUo-jU-0O5"/>
+                                                        </connections>
                                                     </textField>
                                                 </subviews>
                                             </view>
@@ -430,13 +433,14 @@
                                                 <rect key="frame" x="1" y="1" width="565" height="241"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
-                                                    <textView importsGraphics="NO" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" smartInsertDelete="YES" id="UGX-u1-IKA">
+                                                    <textView editable="NO" importsGraphics="NO" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" smartInsertDelete="YES" id="UGX-u1-IKA">
                                                         <rect key="frame" x="0.0" y="0.0" width="565" height="241"/>
                                                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                        <color key="textColor" name="alternateSelectedControlColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                                         <size key="minSize" width="565" height="241"/>
                                                         <size key="maxSize" width="586" height="10000000"/>
-                                                        <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                                                        <color key="insertionPointColor" name="alternateSelectedControlColor" catalog="System" colorSpace="catalog"/>
                                                         <size key="minSize" width="565" height="241"/>
                                                         <size key="maxSize" width="586" height="10000000"/>
                                                     </textView>
@@ -455,19 +459,16 @@
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="elv-36-OZ7">
                                             <rect key="frame" x="46" y="231" width="517" height="68"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" id="Elw-xT-GPu">
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="If you want your settings to be permanent, edit the VoodooPS2Trackpad Info.plist" id="Elw-xT-GPu">
                                                 <font key="font" metaFont="system"/>
-                                                <string key="title">If you want your settings to be permanent, edit the VoodooPS2Trackpad Info.plist 
-
-</string>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" id="sWn-a4-DoM">
-                                            <rect key="frame" x="71" y="267" width="467" height="17"/>
+                                            <rect key="frame" x="71" y="267" width="470" height="17"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="And replace the content of the Cypress section with the following values :" id="lWa-ys-e4G">
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="And replace the content of the Cypress section to fit the following values :" id="lWa-ys-e4G">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>

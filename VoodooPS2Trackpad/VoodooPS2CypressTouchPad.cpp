@@ -347,30 +347,30 @@ bool ApplePS2CypressTouchPad::start( IOService * provider )
     //
 
 
-    enabledProperty = 1;
-    disabledProperty = 0; 
+//     enabledProperty = 1;
+//     disabledProperty = 0; 
 
-    setProperty("Clicking", enabledProperty, 
-       sizeof(enabledProperty) * 8);
-    setProperty("DragLock", disabledProperty, 
-        sizeof(disabledProperty) * 8);
-    setProperty("Dragging", disabledProperty, 
-       sizeof(disabledProperty) * 8);
-    setProperty("TrackpadScroll", enabledProperty, 
-       sizeof(enabledProperty) * 8);
-    setProperty("TrackpadHorizScroll", enabledProperty, 
-       sizeof(enabledProperty) * 8);
+//     setProperty("Clicking", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
+//     setProperty("DragLock", disabledProperty, 
+//         sizeof(disabledProperty) * 8);
+//     setProperty("Dragging", disabledProperty, 
+//        sizeof(disabledProperty) * 8);
+//     setProperty("TrackpadScroll", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
+//     setProperty("TrackpadHorizScroll", enabledProperty, 
+//        sizeof(enabledProperty) * 8);
 
-    setProperty("CypressFourFingerHorizSwipeGesture", ( _fourFingerHorizSwipeGesture ? enabledProperty : disabledProperty),
-		sizeof(enabledProperty) * 8);
-    setProperty("CypressFourFingerVertSwipeGesture", ( _fourFingerVertSwipeGesture ? enabledProperty : disabledProperty),
-        sizeof(enabledProperty) * 8);
-    setProperty("CypressFiveFingerScreenLock", ( _fiveFingerScreenLock ? enabledProperty : disabledProperty),
-        sizeof(enabledProperty) * 8);
-    setProperty("CypressFiveFingerSleep", (_fiveFingerSleep ? enabledProperty : disabledProperty),
-        sizeof(enabledProperty) * 8);
-    setProperty("CypressThreeFingerDrag", (_threeFingerDrag ? enabledProperty : disabledProperty),
-        sizeof(enabledProperty) * 8);
+//     setProperty("CypressFourFingerHorizSwipeGesture", ( _fourFingerHorizSwipeGesture ? enabledProperty : disabledProperty),
+// 		sizeof(enabledProperty) * 8);
+//     setProperty("CypressFourFingerVertSwipeGesture", ( _fourFingerVertSwipeGesture ? enabledProperty : disabledProperty),
+//         sizeof(enabledProperty) * 8);
+//     setProperty("CypressFiveFingerScreenLock", ( _fiveFingerScreenLock ? enabledProperty : disabledProperty),
+//         sizeof(enabledProperty) * 8);
+//     setProperty("CypressFiveFingerSleep", (_fiveFingerSleep ? enabledProperty : disabledProperty),
+//         sizeof(enabledProperty) * 8);
+//     setProperty("CypressThreeFingerDrag", (_threeFingerDrag ? enabledProperty : disabledProperty),
+//         sizeof(enabledProperty) * 8);
 //        float	i = 200;
 //     setProperty("1FingersMaxTapTime", i, sizeof(i) * 8);
 //     setProperty("2FingersMaxTapTime", i, sizeof(i) * 8);

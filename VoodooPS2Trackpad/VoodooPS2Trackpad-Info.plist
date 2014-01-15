@@ -384,7 +384,7 @@
 			    <key>CypressFiveFingerScreenLock</key>
 			    <true/>
 			    <key>CypressFiveFingerSleep</key>
-			    <false/>
+			    <true/>
 			    <key>Cypress1FingerMaxTapTime</key>
 			    <integer>200</integer>
 			    <key>Cypress2FingerMaxTapTime</key>
