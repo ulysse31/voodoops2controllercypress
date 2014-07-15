@@ -1090,7 +1090,7 @@ bool		ApplePS2CypressTouchPad::cypressReadTpMetrics()
   _tpResY = _tpMaxAbsY / _tpHigh;
 
   if (!_tpMetricsSupported)
-    return 0;
+    return true;
 
   this->myMemset(param, 0, sizeof(param));
   if (this->cypressSendCmd(CYTP_CMD_READ_TP_METRICS, param) == true)
@@ -1116,7 +1116,7 @@ bool		ApplePS2CypressTouchPad::cypressReadTpMetrics()
     }
   _tpResX = _tpMaxAbsX / _tpWidth;
   _tpResY = _tpMaxAbsY / _tpHigh;  
-  return (0);
+  return true;
 }
 
 void		*ApplePS2CypressTouchPad::myMemset(void *s, int c, unsigned int n)
