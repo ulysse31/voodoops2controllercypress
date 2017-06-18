@@ -35,12 +35,23 @@
 //#define PACKET_DEBUG
 #endif
 
+#define kTPDN "TPDN" // Trackpad Disable Notification
+
 #include <IOKit/IOLib.h>
 #include <IOKit/hidsystem/IOHIDParameter.h>
 #include <IOKit/IOWorkLoop.h>
 #include <IOKit/IOTimerEventSource.h>
 #include "VoodooPS2Controller.h"
 #include "VoodooPS2SynapticsTouchPad.h"
+
+//REVIEW: avoids problem with Xcode 5.1.0 where -dead_strip eliminates these required symbols
+#include <libkern/OSKextLib.h>
+void* _org_rehabman_dontstrip_[] =
+{
+    (void*)&OSKextGetCurrentIdentifier,
+    (void*)&OSKextGetCurrentLoadTag,
+    (void*)&OSKextGetCurrentVersionString,
+};
 
 // =============================================================================
 // ApplePS2SynapticsTouchPad Class Implementation
@@ -71,24 +82,6 @@ bool ApplePS2SynapticsTouchPad::init(OSDictionary * dict)
     if (!super::init(dict))
         return false;
 
-    // find config specific to Platform Profile
-    OSDictionary* list = OSDynamicCast(OSDictionary, dict->getObject(kPlatformProfile));
-    OSDictionary* config = ApplePS2Controller::makeConfigurationNode(list);
-    if (config)
-    {
-        // if DisableDevice is Yes, then do not load at all...
-        OSBoolean* disable = OSDynamicCast(OSBoolean, config->getObject(kPlatformProfile));
-        if (disable && disable->isTrue())
-        {
-            config->release();
-            return false;
-        }
-#ifdef DEBUG
-        // save configuration for later/diagnostics...
-        setProperty(kMergedConfiguration, config);
-#endif
-    }
-    
     // initialize state...
     _device = NULL;
     _interruptHandlerInstalled = false;
@@ -98,6 +91,7 @@ bool ApplePS2SynapticsTouchPad::init(OSDictionary * dict)
     _lastdata = 0;
     _touchPadModeByte = 0x80; //default: absolute, low-rate, no w-mode
     _cmdGate = 0;
+    _provider = NULL;
 
     // set defaults for configuration items
     
@@ -168,7 +162,12 @@ bool ApplePS2SynapticsTouchPad::init(OSDictionary * dict)
     xupmm = yupmm = 50; // 50 is just arbitrary, but same
     
     _extendedwmode=false;
+    _extendedwmodeSupported=false;
+    _dynamicEW=false;
     
+    // added by usr-sse2
+    rightclick_corner=2;    // default to right corner for old trackpad prefs
+
     // intialize state
     
 	lastx=0;
@@ -229,21 +228,62 @@ bool ApplePS2SynapticsTouchPad::init(OSDictionary * dict)
     
 	touchmode=MODE_NOTOUCH;
     
-	IOLog ("VoodooPS2SynapticsTouchPad Version 1.8.8 loaded...\n");
-    
+    // announce version
+    extern kmod_info_t kmod_info;
+    IOLog("VoodooPS2SynapticsTouchPad: Version %s starting on OS X Darwin %d.%d.\n", kmod_info.version, version_major, version_minor);
+
+    // place version/build info in ioreg properties RM,Build and RM,Version
+    char buf[128];
+    snprintf(buf, sizeof(buf), "%s %s", kmod_info.name, kmod_info.version);
+    setProperty("RM,Version", buf);
+#ifdef DEBUG
+    setProperty("RM,Build", "Debug-" LOGNAME);
+#else
+    setProperty("RM,Build", "Release-" LOGNAME);
+#endif
+
 	setProperty ("Revision", 24, 32);
-    
-    //
-    // Load settings specific to Platform Profile
-    //
-    
-    setParamPropertiesGated(config);
-    OSSafeRelease(config);
     
     return true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+void ApplePS2SynapticsTouchPad::injectVersionDependentProperites(OSDictionary *config)
+{
+    // inject properties specific to the version of Darwin that is runnning...
+    char buf[32];
+    // check for "Darwin major.x"
+    snprintf(buf, sizeof(buf), "Darwin %d.x", version_major);
+    if (OSDictionary* dict = OSDynamicCast(OSDictionary, config->getObject(buf)))
+    {
+        if (OSCollectionIterator* iter = OSCollectionIterator::withCollection(dict))
+        {
+            // Note: OSDictionary always contains OSSymbol*
+            while (const OSSymbol* key = static_cast<const OSSymbol*>(iter->getNextObject()))
+            {
+                if (OSObject* value = dict->getObject(key))
+                    setProperty(key, value);
+            }
+            iter->release();
+        }
+    }
+    // check for "Darwin major.minor"
+    snprintf(buf, sizeof(buf), "Darwin %d.%d", version_major, version_minor);
+    if (OSDictionary* dict = OSDynamicCast(OSDictionary, config->getObject(buf)))
+    {
+        if (OSCollectionIterator* iter = OSCollectionIterator::withCollection(dict))
+        {
+            // Note: OSDictionary always contains OSSymbol*
+            while (const OSSymbol* key = static_cast<const OSSymbol*>(iter->getNextObject()))
+            {
+                if (OSObject* value = dict->getObject(key))
+                    setProperty(key, value);
+            }
+            iter->release();
+        }
+    }
+}
 
 ApplePS2SynapticsTouchPad* ApplePS2SynapticsTouchPad::probe(IOService * provider, SInt32 * score)
 {
@@ -261,7 +301,36 @@ ApplePS2SynapticsTouchPad* ApplePS2SynapticsTouchPad::probe(IOService * provider
         return 0;
 
     _device  = (ApplePS2MouseDevice*)provider;
-    
+    bool forceSynaptics = false;
+
+    // find config specific to Platform Profile
+    OSDictionary* list = OSDynamicCast(OSDictionary, getProperty(kPlatformProfile));
+    OSDictionary* config = _device->getController()->makeConfigurationNode(list, "Synaptics TouchPad");
+    if (config)
+    {
+        // if DisableDevice is Yes, then do not load at all...
+        OSBoolean* disable = OSDynamicCast(OSBoolean, config->getObject(kPlatformProfile));
+        if (disable && disable->isTrue())
+        {
+            config->release();
+            return 0;
+        }
+        if (OSBoolean* force = OSDynamicCast(OSBoolean, config->getObject("ForceSynapticsDetect")))
+        {
+            // "ForceSynapticsDetect" can be set to treat a trackpad as Synpaptics which does not identify itself properly...
+            forceSynaptics = force->isTrue();
+        }
+#ifdef DEBUG
+        // save configuration for later/diagnostics...
+        setProperty(kMergedConfiguration, config);
+#endif
+    }
+
+    // load settings specific to Platform Profile
+    setParamPropertiesGated(config);
+    injectVersionDependentProperites(config);
+    OSSafeRelease(config);
+
     // for diagnostics...
     UInt8 buf3[3];
     bool success = getTouchPadData(0x0, buf3);
@@ -310,6 +379,11 @@ ApplePS2SynapticsTouchPad* ApplePS2SynapticsTouchPad::probe(IOService * provider
             }
             // Only support 2.x or later touchpads.
             success = _touchPadVersion >= 0x200;
+        }
+        if (forceSynaptics)
+        {
+            IOLog("VoodooPS2Trackpad: Forcing Synaptics detection due to ForceSynapticsDetect\n");
+            success = true;
         }
     }
     
@@ -379,8 +453,8 @@ void ApplePS2SynapticsTouchPad::queryCapabilities()
         // automatically set extendedwmode for clickpads, if supported
         if (supportsEW && clickpadtype)
         {
-            _extendedwmode = true;
-            DEBUG_LOG("VoodooPS2Trackpad: _extendedwmode set for Clickpad\n");
+            _extendedwmodeSupported = true;
+            DEBUG_LOG("VoodooPS2Trackpad: Clickpad supports extendedW mode\n");
         }
     }
     
@@ -465,7 +539,10 @@ bool ApplePS2SynapticsTouchPad::start( IOService * provider )
 
     IOLog("VoodooPS2Trackpad starting: Synaptics TouchPad reports type 0x%02x, version %d.%d\n",
           _touchPadType, (UInt8)(_touchPadVersion >> 8), (UInt8)(_touchPadVersion));
-    
+    char buf[128];
+    snprintf(buf, sizeof(buf), "type 0x%02x, version %d.%d", _touchPadType, (UInt8)(_touchPadVersion >> 8), (UInt8)(_touchPadVersion));
+    setProperty("RM,TrackpadInfo", buf);
+
     //
     // Advertise the current state of the tapping feature.
     //
@@ -477,6 +554,9 @@ bool ApplePS2SynapticsTouchPad::start( IOService * provider )
     setProperty(kIOHIDPointerAccelerationTypeKey, kIOHIDTrackpadAccelerationType);
     setProperty(kIOHIDScrollAccelerationTypeKey, kIOHIDTrackpadScrollAccelerationKey);
 	setProperty(kIOHIDScrollResolutionKey, _scrollresolution << 16, 32);
+    // added for Sierra precise scrolling (credit usr-sse2)
+    setProperty("HIDScrollResolutionX", _scrollresolution << 16, 32);
+    setProperty("HIDScrollResolutionY", _scrollresolution << 16, 32);
     
     //
     // Setup workloop with command gate for thread syncronization...
@@ -569,6 +649,15 @@ bool ApplePS2SynapticsTouchPad::start( IOService * provider )
         OSMemberFunctionCast(PS2MessageAction, this, &ApplePS2SynapticsTouchPad::receiveMessage));
     _messageHandlerInstalled = true;
     
+    // get IOACPIPlatformDevice for Device (PS2M)
+    //REVIEW: should really look at the parent chain for IOACPIPlatformDevice instead.
+    _provider = (IOACPIPlatformDevice*)IORegistryEntry::fromPath("IOService:/AppleACPIPlatformExpert/PS2M");
+    if (_provider && kIOReturnSuccess != _provider->validateObject(kTPDN))
+    {
+        _provider->release();
+        _provider = NULL;
+    }
+
     //
     // Update LED -- it could have been disabled then computer was restarted
     //
@@ -663,6 +752,11 @@ void ApplePS2SynapticsTouchPad::stop( IOService * provider )
     
     OSSafeReleaseNULL(_device);
     
+    //
+    // Release ACPI provider for PS2M ACPI device
+    //
+    OSSafeReleaseNULL(_provider);
+
 	super::stop(provider);
 }
 
@@ -1032,6 +1126,12 @@ void ApplePS2SynapticsTouchPad::dispatchEventsWithPacket(UInt8* packet, UInt32 p
     // now deal with pass through packet moving/scrolling
     if (passthru && 3 == w)
     {
+        // New Lenovo clickpads do not have buttons, so LR in packet byte 1 is zero and thus
+        // passbuttons is 0.  Instead we need to check the trackpad buttons in byte 0 and byte 3
+        // However for clickpads that would miss right clicks, so use the last clickbuttons that
+        // were saved.
+        UInt32 combinedButtons = buttons | ((packet[0] & 0x3) | (packet[3] & 0x3)) | _clickbuttons;
+
         SInt32 dx = ((packet[1] & 0x10) ? 0xffffff00 : 0 ) | packet[4];
         SInt32 dy = ((packet[1] & 0x20) ? 0xffffff00 : 0 ) | packet[5];
         if (mousemiddlescroll && (packet[1] & 0x4)) // only for physical middle button
@@ -1047,10 +1147,10 @@ void ApplePS2SynapticsTouchPad::dispatchEventsWithPacket(UInt8* packet, UInt32 p
         }
         dx *= mousemultiplierx;
         dy *= mousemultipliery;
-        dispatchRelativePointerEventX(dx, -dy, buttons, now_abs);
+        dispatchRelativePointerEventX(dx, -dy, combinedButtons, now_abs);
 #ifdef DEBUG_VERBOSE
         static int count = 0;
-        IOLog("ps2: passthru packet dx=%d, dy=%d, buttons=%d (%d)\n", dx, dy, buttons, count++);
+        IOLog("ps2: passthru packet dx=%d, dy=%d, buttons=%d (%d)\n", dx, dy, combinedButtons, count++);
 #endif
         return;
     }
@@ -1149,7 +1249,9 @@ void ApplePS2SynapticsTouchPad::dispatchEventsWithPacket(UInt8* packet, UInt32 p
             }
             DEBUG_LOG("ps2: now_ns=%lld, touchtime=%lld, diff=%lld cpct=%lld (%s) w=%d (%d,%d)\n", now_ns, touchtime, now_ns-touchtime, clickpadclicktime, now_ns-touchtime < clickpadclicktime ? "true" : "false", w, isFingerTouch(z), isInRightClickZone(xx, yy));
             // change to right click if in right click zone, or was two finger "click"
-            if (isFingerTouch(z) && (isInRightClickZone(xx, yy)
+            if (isFingerTouch(z) &&
+                (((rightclick_corner == 2 && isInRightClickZone(xx, yy)) ||
+                 (rightclick_corner == 1 && isInLeftClickZone(xx, yy)))
                 || (0 == w && (now_ns-touchtime < clickpadclicktime || MODE_NOTOUCH == touchmode))))
             {
                 DEBUG_LOG("ps2p: setting clickbuttons to indicate right\n");
@@ -1157,11 +1259,11 @@ void ApplePS2SynapticsTouchPad::dispatchEventsWithPacket(UInt8* packet, UInt32 p
             }
             else
                 DEBUG_LOG("ps2p: setting clickbuttons to indicate left\n");
-            _clickbuttons = clickbuttons;
+            setClickButtons(clickbuttons);
         }
         // always clear _clickbutton state, when ClickPad is not clicked
         if (!clickbuttons)
-            _clickbuttons = 0;
+            setClickButtons(0);
         buttons |= _clickbuttons;
         lastbuttons = buttons;
     }
@@ -1186,7 +1288,7 @@ void ApplePS2SynapticsTouchPad::dispatchEventsWithPacket(UInt8* packet, UInt32 p
         switch (touchmode)
         {
             case MODE_NOTOUCH:
-                if (isFingerTouch(z) && 4 == w && isInDisableZone(x, y))
+                if (isFingerTouch(z) && (4 <= w && w <= 5) && isInDisableZone(x, y))
                 {
                     touchtime = now_ns;
                     touchmode = MODE_WAIT1RELEASE;
@@ -1221,7 +1323,7 @@ void ApplePS2SynapticsTouchPad::dispatchEventsWithPacket(UInt8* packet, UInt32 p
             case MODE_WAIT2TAP:
                 if (isFingerTouch(z))
                 {
-                    if (isInDisableZone(x, y) && 4 == w)
+                    if (isInDisableZone(x, y) && (4 <= w && w <= 5))
                     {
                         DEBUG_LOG("ps2: detected touch2 in disable zone... ");
                         if (now_ns-untouchtime < maxdragtime)
@@ -1865,12 +1967,12 @@ void ApplePS2SynapticsTouchPad::dispatchEventsWithPacketEW(UInt8* packet, UInt32
                 }
                 else
                     DEBUG_LOG("ps2s: setting clickbuttons to indicate left\n");
-                _clickbuttons = clickbuttons;
+                setClickButtons(clickbuttons);
                 clickedprimary = false;
             }
             // always clear _clickbutton state, when ClickPad is not clicked
             if (!clickbuttons)
-                _clickbuttons = 0;
+                setClickButtons(0);
             buttons |= _clickbuttons;
         }
         dispatchRelativePointerEventX(0, 0, buttons, now_abs);
@@ -2024,7 +2126,11 @@ void ApplePS2SynapticsTouchPad::initTouchPad()
 
 bool ApplePS2SynapticsTouchPad::setTouchpadModeByte()
 {
-    _touchPadModeByte = _extendedwmode ? _touchPadModeByte | (1<<2) : _touchPadModeByte & ~(1<<2);
+    if (!_dynamicEW)
+    {
+        _touchPadModeByte = _extendedwmodeSupported ? _touchPadModeByte | (1<<2) : _touchPadModeByte & ~(1<<2);
+        _extendedwmode = _extendedwmodeSupported;
+    }
     return setTouchPadModeByte(_touchPadModeByte);
 }
 
@@ -2185,6 +2291,75 @@ bool ApplePS2SynapticsTouchPad::setTouchPadModeByte(UInt8 modeByteValue)
     return i == request.commandsCount;
 }
 
+
+void ApplePS2SynapticsTouchPad::setClickButtons(UInt32 clickButtons)
+{
+    UInt32 oldClickButtons = _clickbuttons;
+    _clickbuttons = clickButtons;
+
+    if (!!oldClickButtons != !!clickButtons)
+        setModeByte();
+}
+
+bool ApplePS2SynapticsTouchPad::setModeByte()
+{
+    if (!_dynamicEW || !_extendedwmodeSupported)
+        return false;
+
+    _touchPadModeByte = _clickbuttons ? _touchPadModeByte | (1<<2) : _touchPadModeByte & ~(1<<2);
+    _extendedwmode = _clickbuttons;
+
+    return setModeByte(_touchPadModeByte);
+}
+
+// simplified setModeByte for switching between normal mode and EW mode
+bool ApplePS2SynapticsTouchPad::setModeByte(UInt8 modeByteValue)
+{
+    // make sure we are not early in the initialization...
+    if (!_device)
+        return false;
+
+    int i;
+    TPS2Request<> request;
+
+    // Disable stream mode before the command sequence.
+    i = 0;
+    request.commands[i++].inOrOut = kDP_SetDefaultsAndDisable;     // F5
+    request.commands[i++].inOrOut = kDP_SetDefaultsAndDisable;     // F5
+    request.commands[i++].inOrOut = kDP_SetMouseScaling1To1;       // E6
+    request.commands[i++].inOrOut = kDP_SetMouseScaling1To1;       // E6
+
+    // 4 set resolution commands, each encode 2 data bits.
+    request.commands[i++].inOrOut = kDP_SetMouseResolution;        // E8
+    request.commands[i++].inOrOut = (modeByteValue >> 6) & 0x3;    // 0x (depends on mode byte)
+    request.commands[i++].inOrOut = kDP_SetMouseResolution;        // E8
+    request.commands[i++].inOrOut = (modeByteValue >> 4) & 0x3;    // 0x (depends on mode byte)
+    request.commands[i++].inOrOut = kDP_SetMouseResolution;        // E8
+    request.commands[i++].inOrOut = (modeByteValue >> 2) & 0x3;    // 0x (depends on mode byte)
+    request.commands[i++].inOrOut = kDP_SetMouseResolution;        // E8
+    request.commands[i++].inOrOut = (modeByteValue >> 0) & 0x3;    // 0x (depends on mode byte)
+
+    // Set sample rate 20 to set mode byte 2. Older pads have 4 mode
+    // bytes (0,1,2,3), but only mode byte 2 remain in modern pads.
+    request.commands[i++].inOrOut = kDP_SetMouseSampleRate;        // F3
+    request.commands[i++].inOrOut = 20;                            // 14
+    request.commands[i++].inOrOut = kDP_SetMouseScaling1To1;       // E6
+
+    // enable trackpad
+    request.commands[i++].inOrOut = kDP_Enable;                    // F4
+
+    // all these commands are "send mouse" and "compare ack"
+    for (int x = 0; x < i; x++)
+        request.commands[x].command = kPS2C_SendMouseCommandAndCompareAck;
+    request.commandsCount = i;
+    assert(request.commandsCount <= countof(request.commands));
+    _device->submitRequestAndBlock(&request);
+    if (i != request.commandsCount)
+        DEBUG_LOG("VoodooPS2Trackpad: sestModeByte failed: %d\n", request.commandsCount);
+
+    return i == request.commandsCount;
+}
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 void ApplePS2SynapticsTouchPad::setParamPropertiesGated(OSDictionary * config)
@@ -2251,6 +2426,8 @@ void ApplePS2SynapticsTouchPad::setParamPropertiesGated(OSDictionary * config)
         {"UnitsPerMMY",                     &yupmm},
         {"ScrollDeltaThreshX",              &scrolldxthresh},
         {"ScrollDeltaThreshY",              &scrolldythresh},
+        // usr-sse2 added
+        {"TrackpadCornerSecondaryClick",    &rightclick_corner},
 	};
 	const struct {const char *name; int *var;} boolvars[]={
 		{"StickyHorizontalScrolling",		&hsticky},
@@ -2266,6 +2443,7 @@ void ApplePS2SynapticsTouchPad::setParamPropertiesGated(OSDictionary * config)
         {"ImmediateClick",                  &immediateclick},
         {"MouseMiddleScroll",               &mousemiddlescroll},
         {"FakeMiddleButton",                &_fakemiddlebutton},
+        {"DynamicEWMode",                   &_dynamicEW},
 	};
     const struct {const char* name; bool* var;} lowbitvars[]={
         {"TrackpadRightClick",              &rtap},
@@ -2330,12 +2508,20 @@ void ApplePS2SynapticsTouchPad::setParamPropertiesGated(OSDictionary * config)
         }
     // lowbit config items
 	for (int i = 0; i < countof(lowbitvars); i++)
+    {
 		if ((num=OSDynamicCast (OSNumber,config->getObject(lowbitvars[i].name))))
         {
 			*lowbitvars[i].var = (num->unsigned32BitValue()&0x1)?true:false;
             setProperty(lowbitvars[i].name, *lowbitvars[i].var ? 1 : 0, 32);
         }
-    
+        //REVIEW: are these items ever carried in a boolean?
+        else if ((bl=OSDynamicCast(OSBoolean, config->getObject(lowbitvars[i].name))))
+        {
+            *lowbitvars[i].var = bl->isTrue();
+            setProperty(lowbitvars[i].name, *lowbitvars[i].var ? kOSBooleanTrue : kOSBooleanFalse);
+        }
+    }
+
     // special case for MaxDragTime (which is really max time for a double-click)
     // we can let it go no more than 230ms because otherwise taps on
     // the menu bar take too long if drag mode is enabled.  The code in that case
@@ -2373,10 +2559,17 @@ void ApplePS2SynapticsTouchPad::setParamPropertiesGated(OSDictionary * config)
     if (!divisory)
         divisory = 1;
 
+    // bogusdeltathreshx/y = 0 is MAX_INT
+    if (!bogusdxthresh)
+        bogusdxthresh = 0x7FFFFFFF;
+    if (!bogusdythresh)
+        bogusdythresh = 0x7FFFFFFF;
+
     // this driver assumes wmode is available (6-byte packets)
     _touchPadModeByte |= 1<<0;
     // extendedwmode is optional, used automatically for ClickPads
-    _touchPadModeByte = _extendedwmode ? _touchPadModeByte | (1<<2) : _touchPadModeByte & ~(1<<2);
+    if (!_dynamicEW)
+        _touchPadModeByte = _extendedwmodeSupported ? _touchPadModeByte | (1<<2) : _touchPadModeByte & ~(1<<2);
 	// if changed, setup touchpad mode
 	if (_touchPadModeByte != oldmode)
     {
@@ -2394,6 +2587,18 @@ void ApplePS2SynapticsTouchPad::setParamPropertiesGated(OSDictionary * config)
         // when system is shutting down/restarting we want to force LED off
         if (ledpresent && !noled)
             setTouchpadLED(0x10);
+
+        // if PS2M implements "TPDN" then, we can notify it of the shutdown
+        // (allows implementation of LED change in ACPI)
+        if (_provider)
+        {
+            if (OSNumber* num = OSNumber::withNumber(0xFFFF, 32))
+            {
+                _provider->evaluateObject(kTPDN, NULL, (OSObject**)&num, 1);
+                num->release();
+            }
+        }
+
         mousecount = oldmousecount;
     }
 
@@ -2409,13 +2614,16 @@ void ApplePS2SynapticsTouchPad::setParamPropertiesGated(OSDictionary * config)
 
 IOReturn ApplePS2SynapticsTouchPad::setParamProperties(OSDictionary* dict)
 {
+    ////IOReturn result = super::IOHIDevice::setParamProperties(dict);
     if (_cmdGate)
     {
         // syncronize through workloop...
-        _cmdGate->runAction(OSMemberFunctionCast(IOCommandGate::Action, this, &ApplePS2SynapticsTouchPad::setParamPropertiesGated), dict);
+        ////_cmdGate->runAction(OSMemberFunctionCast(IOCommandGate::Action, this, &ApplePS2SynapticsTouchPad::setParamPropertiesGated), dict);
+        setParamPropertiesGated(dict);
     }
     
     return super::setParamProperties(dict);
+    ////return result;
 }
 
 IOReturn ApplePS2SynapticsTouchPad::setProperties(OSObject *props)
@@ -2617,6 +2825,17 @@ void ApplePS2SynapticsTouchPad::updateTouchpadLED()
 {
     if (ledpresent && !noled)
         setTouchpadLED(ignoreall ? 0x88 : 0x10);
+
+    // if PS2M implements "TPDN" then, we can notify it of changes to LED state
+    // (allows implementation of LED change in ACPI)
+    if (_provider)
+    {
+        if (OSNumber* num = OSNumber::withNumber(ignoreall, 32))
+        {
+            _provider->evaluateObject(kTPDN, NULL, (OSObject**)&num, 1);
+            num->release();
+        }
+    }
 }
 
 bool ApplePS2SynapticsTouchPad::setTouchpadLED(UInt8 touchLED)

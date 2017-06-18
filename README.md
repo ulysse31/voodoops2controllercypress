@@ -1,4 +1,3 @@
-
 <h1>VoodooPS2Controller for Cypress PS2 touchpad</h1>
 This project was based on a fork of VoodooPS2Controller from rehabman.<br />
 The goal was to implement support for cypress PS2 on it : Goal is now completed, since we can now detect up to 5 fingers, even on cypress firmwares that officially only supports up to 3 fingers. <br />

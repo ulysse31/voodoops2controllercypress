@@ -26,7 +26,6 @@
 #include <libkern/c++/OSBoolean.h>
 #include "ApplePS2KeyboardDevice.h"
 #include <IOKit/hidsystem/IOHIKeyboard.h>
-#include "ApplePS2ToADBMap.h"
 #include <IOKit/acpi/IOACPIPlatformDevice.h>
 #include <IOKit/IOCommandGate.h>
 
@@ -62,7 +61,10 @@
 // ApplePS2Keyboard Class Declaration
 //
 
-#define kPacketLength 2
+#define kPacketLength (2+6+8) // 2 bytes for key data, 6-bytes not used, 8 bytes for timestamp
+#define kPacketKeyOffset 0
+#define kPacketTimeOffset 8
+#define kPacketKeyDataLength 2
 
 class EXPORT ApplePS2Keyboard : public IOHIKeyboard
 {
@@ -82,8 +84,9 @@ private:
     IOCommandGate*              _cmdGate;
 
     // for keyboard remapping
+    UInt16                      _PS2modifierState;
     UInt16                      _PS2ToPS2Map[KBV_NUM_SCANCODES*2];
-    UInt8                       _PS2flags[KBV_NUM_SCANCODES*2];
+    UInt16                      _PS2flags[KBV_NUM_SCANCODES*2];
     UInt8                       _PS2ToADBMap[ADB_CONVERTER_LEN];
     UInt8                       _PS2ToADBMapMapped[ADB_CONVERTER_LEN];
     UInt32                      _fkeymode;
@@ -91,7 +94,7 @@ private:
     OSArray*                    _keysStandard;
     OSArray*                    _keysSpecial;
     bool                        _swapcommandoption;
-    bool                        _logscancodes;
+    int                         _logscancodes;
     UInt32                      _f12ejectdelay;
     enum { kTimerSleep, kTimerEject } _timerFunc;
     
@@ -117,7 +120,19 @@ private:
     int *                       _backlightLevels;
     int                         _backlightCount;
     
-    virtual bool dispatchKeyboardEventWithPacket(UInt8* packet, UInt32 packetSize);
+    // special hack for Envy brightness access, while retaining F2/F3 functionality
+    bool                        _brightnessHack;
+    
+    // macro processing
+    OSData**                    _macroTranslation;
+    OSData**                    _macroInversion;
+    UInt8*                      _macroBuffer;
+    int                         _macroMax;
+    int                         _macroCurrent;
+    uint64_t                    _macroMaxTime;
+    IOTimerEventSource*         _macroTimer;
+    
+    virtual bool dispatchKeyboardEventWithPacket(const UInt8* packet);
     virtual void setLEDs(UInt8 ledState);
     virtual void setKeyboardEnable(bool enable);
     virtual void initKeyboard();
@@ -125,12 +140,21 @@ private:
     void sendKeySequence(UInt16* pKeys);
     void modifyKeyboardBacklight(int adbKeyCode, bool goingDown);
     void modifyScreenBrightness(int adbKeyCode, bool goingDown);
+    inline bool checkModifierState(UInt16 mask)
+        { return mask == (_PS2modifierState & mask); }
     
     void loadCustomPS2Map(OSArray* pArray);
     void loadBreaklessPS2(OSDictionary* dict, const char* name);
     void loadCustomADBMap(OSDictionary* dict, const char* name);
     void setParamPropertiesGated(OSDictionary* dict);
     void onSleepEjectTimer(void);
+    
+    static OSData** loadMacroData(OSDictionary* dict, const char* name);
+    static void freeMacroData(OSData** data);
+    void onMacroTimer(void);
+    bool invertMacros(const UInt8* packet);
+    void dispatchInvertBuffer();
+    static bool compareMacro(const UInt8* packet, const UInt8* data, int count);
 
 protected:
     virtual const unsigned char * defaultKeymapOfLength(UInt32 * length);
@@ -146,7 +170,6 @@ protected:
 
 public:
     virtual bool init(OSDictionary * dict);
-    virtual void free();
     virtual ApplePS2Keyboard * probe(IOService * provider, SInt32 * score);
 
     virtual bool start(IOService * provider);
@@ -162,6 +185,8 @@ public:
     
   	virtual IOReturn setParamProperties(OSDictionary* dict);
     virtual IOReturn setProperties (OSObject *props);
+    
+    virtual IOReturn message(UInt32 type, IOService* provider, void* argument);
 };
 
 #endif /* _APPLEPS2KEYBOARD_H */
